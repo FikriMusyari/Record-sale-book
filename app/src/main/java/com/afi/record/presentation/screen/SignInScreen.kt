@@ -36,7 +36,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.afi.record.presentation.Screen
-
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun SignInScreen(navController: NavController) {
@@ -78,7 +81,6 @@ fun SignInScreen(navController: NavController) {
                 },
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = TextStyle(color = Color.White)
-
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -95,7 +97,8 @@ fun SignInScreen(navController: NavController) {
                     )
                 },
                 visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = TextStyle(color = Color.White)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -103,7 +106,16 @@ fun SignInScreen(navController: NavController) {
             Button(
                 onClick = {
                     isLoading = true
-                    // TODO: Implement actual login logic
+                    // Simulate login process with a delay
+                    CoroutineScope(Dispatchers.Main).launch {
+                        delay(1500) // Simulate network delay
+                        isLoading = false
+                        // Navigate to Dashboard after login
+                        navController.navigate(Screen.Dashboard.route) {
+                            // Clear the back stack so user can't go back to login
+                            popUpTo(Screen.SignIn.route) { inclusive = true }
+                        }
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
