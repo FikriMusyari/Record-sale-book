@@ -14,6 +14,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.afi.record.presentation.screen.DashboardScreen
 import com.afi.record.presentation.screen.SignInScreen
 import com.afi.record.presentation.screen.SignUpScreen
 import com.afi.record.presentation.ui.theme.RecordTheme
@@ -34,6 +35,9 @@ class MainActivity : ComponentActivity() {
                     }
                     composable(Screen.SignUp.route) {
                         SignUpScreen(navController)
+                    }
+                    composable(Screen.Dashboard.route) {
+                        DashboardScreen(navController = navController)
                     }
                 }
             }
