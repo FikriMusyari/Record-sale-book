@@ -1,8 +1,5 @@
 package com.afi.record.presentation.screen
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -11,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -24,7 +22,7 @@ fun AppTheme(content: @Composable () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QueueCreationScreen() {
+fun QueueScreen(navController: NavController) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showStatusOptions by remember { mutableStateOf(false) }
     var showProductOrder by remember { mutableStateOf(false) }
@@ -475,10 +473,3 @@ fun formatDate(millis: Long): String {
     return sdf.format(Date(millis))
 }
 
-@Preview(showBackground = true)
-@Composable
-fun QueueCreationScreenPreview() {
-    AppTheme {
-        QueueCreationScreen()
-    }
-}

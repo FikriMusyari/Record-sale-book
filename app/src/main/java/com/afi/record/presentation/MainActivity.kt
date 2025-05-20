@@ -1,20 +1,17 @@
 package com.afi.record.presentation
 
+import CustomerScreen
+import ProductScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.afi.record.presentation.screen.AddCustomerScreen
 import com.afi.record.presentation.screen.DashboardScreen
+import com.afi.record.presentation.screen.QueueScreen
 import com.afi.record.presentation.screen.SignInScreen
 import com.afi.record.presentation.screen.SignUpScreen
 import com.afi.record.presentation.ui.theme.RecordTheme
@@ -28,8 +25,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             val navController = rememberNavController()
             RecordTheme {
-                NavHost(navController = navController, startDestination = Screen.SignIn.route) {
-
+                NavHost(
+                    navController = navController,
+                    startDestination = Screen.SignIn.route
+                ) {
                     composable(Screen.SignIn.route) {
                         SignInScreen(navController)
                     }
@@ -39,9 +38,20 @@ class MainActivity : ComponentActivity() {
                     composable(Screen.Dashboard.route) {
                         DashboardScreen(navController = navController)
                     }
+                    composable(Screen.Customer.route) {
+                        CustomerScreen(navController)
+                    }
+                    composable(Screen.AddCustomer.route) {
+                        AddCustomerScreen(navController)
+                    }
+                    composable(Screen.Product.route) {
+                        ProductScreen(navController)
+                    }
+                    composable(Screen.Queue.route) {
+                        QueueScreen(navController)
+                    }
                 }
             }
         }
     }
 }
-

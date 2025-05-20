@@ -110,8 +110,8 @@ fun SignInScreen(navController: NavController) {
                     CoroutineScope(Dispatchers.Main).launch {
                         delay(1500) // Simulate network delay
                         isLoading = false
-                        // Navigate to Dashboard after login
-                        navController.navigate(Screen.Dashboard.route) {
+                        // Navigate to Customer after login (ubah dari Dashboard ke Customer)
+                        navController.navigate(Screen.Customer.route) {
                             // Clear the back stack so user can't go back to login
                             popUpTo(Screen.SignIn.route) { inclusive = true }
                         }
