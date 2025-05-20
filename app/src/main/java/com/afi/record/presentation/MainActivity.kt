@@ -1,3 +1,4 @@
+// MainActivity.kt
 package com.afi.record.presentation
 
 import CustomerScreen
@@ -10,6 +11,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.afi.record.presentation.screen.AddCustomerScreen
+import com.afi.record.presentation.screen.AddProductScreen
+import com.afi.record.presentation.screen.AddQueueScreen
 import com.afi.record.presentation.screen.DashboardScreen
 import com.afi.record.presentation.screen.QueueScreen
 import com.afi.record.presentation.screen.SignInScreen
@@ -45,9 +48,15 @@ class MainActivity : ComponentActivity() {
                         AddCustomerScreen(navController)
                     }
                     composable(Screen.AddProduct.route) {
-                        ProductScreen(navController)
+                        AddProductScreen(navController) // Changed from ProductScreen to AddProductScreen
                     }
                     composable(Screen.AddQueue.route) {
+                        AddQueueScreen(navController)
+                    }
+                    composable(Screen.Product.route) {
+                        ProductScreen(navController)
+                    }
+                    composable(Screen.Queue.route) {
                         QueueScreen(navController)
                     }
                 }

@@ -1,3 +1,5 @@
+package com.afi.record.presentation.screen
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,7 +20,7 @@ import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProductScreen(navController: NavController) {
+fun AddProductScreen(navController: NavController) {
     val productName = remember { mutableStateOf("") }
     val productPrice = remember { mutableStateOf("") }
 
