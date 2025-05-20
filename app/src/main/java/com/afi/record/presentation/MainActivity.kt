@@ -44,10 +44,10 @@ class MainActivity : ComponentActivity() {
                     composable(Screen.AddCustomer.route) {
                         AddCustomerScreen(navController)
                     }
-                    composable(Screen.Product.route) {
+                    composable(Screen.AddProduct.route) {
                         ProductScreen(navController)
                     }
-                    composable(Screen.Queue.route) {
+                    composable(Screen.AddQueue.route) {
                         QueueScreen(navController)
                     }
                 }
