@@ -6,10 +6,16 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.afi.record.presentation.component.BottomNavigationBar
 import com.afi.record.presentation.screen.AddCustomerScreen
+import com.afi.record.presentation.screen.AddProductScreen
+import com.afi.record.presentation.screen.AddQueueScreen
 import com.afi.record.presentation.screen.DashboardScreen
 import com.afi.record.presentation.screen.QueueScreen
 import com.afi.record.presentation.screen.SignInScreen
@@ -23,32 +29,51 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val navController = rememberNavController()
             RecordTheme {
-                NavHost(
-                    navController = navController,
-                    startDestination = Screen.SignIn.route
-                ) {
-                    composable(Screen.SignIn.route) {
-                        SignInScreen(navController)
+                val navController = rememberNavController()
+
+                Scaffold(
+                    bottomBar = {
+                        BottomNavigationBar(navController)
                     }
-                    composable(Screen.SignUp.route) {
-                        SignUpScreen(navController)
-                    }
-                    composable(Screen.Dashboard.route) {
-                        DashboardScreen(navController = navController)
-                    }
-                    composable(Screen.Customer.route) {
-                        CustomerScreen(navController)
-                    }
-                    composable(Screen.AddCustomer.route) {
-                        AddCustomerScreen(navController)
-                    }
-                    composable(Screen.Product.route) {
-                        ProductScreen(navController)
-                    }
-                    composable(Screen.Queue.route) {
-                        QueueScreen(navController)
+                ) { innerPadding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = Screen.SignIn.route,
+                        modifier = Modifier.padding(innerPadding)
+                    ) {
+                        // Auth screens (no bottom nav)
+                        composable(Screen.SignIn.route) {
+                            SignInScreen(navController)
+                        }
+                        composable(Screen.SignUp.route) {
+                            SignUpScreen(navController)
+                        }
+
+                        // Main screens (with bottom nav)
+                        composable(Screen.Dashboard.route) {
+                            DashboardScreen(navController)
+                        }
+                        composable(Screen.Customer.route) {
+                            CustomerScreen(navController)
+                        }
+                        composable(Screen.Queue.route) {
+                            QueueScreen(navController)
+                        }
+                        composable(Screen.Product.route) {
+                            ProductScreen(navController)
+                        }
+
+                        // Add screens (no bottom nav)
+                        composable(Screen.AddCustomer.route) {
+                            AddCustomerScreen(navController)
+                        }
+                        composable(Screen.AddProduct.route) {
+                            AddProductScreen(navController)
+                        }
+                        composable(Screen.AddQueue.route) {
+                            AddQueueScreen(navController)
+                        }
                     }
                 }
             }

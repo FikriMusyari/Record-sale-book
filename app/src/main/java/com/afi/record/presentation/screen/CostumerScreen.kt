@@ -68,9 +68,9 @@ fun CustomerScreen(navController: NavController) {
                     onCreate = {
                         showCreateNew = false
                         when (selectedCreateOption) {
-                            "Queue" -> navController.navigate(Screen.Queue.route)
+                            "Queue" -> navController.navigate(Screen.AddQueue.route)
                             "Customer" -> navController.navigate(Screen.AddCustomer.route)
-                            "Product" -> navController.navigate(Screen.Product.route)
+                            "Product" -> navController.navigate(Screen.AddProduct.route)
                         }
                     }
                 )
