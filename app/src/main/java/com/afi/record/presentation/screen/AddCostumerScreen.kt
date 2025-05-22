@@ -1,8 +1,5 @@
 package com.afi.record.presentation.screen
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,17 +10,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            MyAppTheme {
-                CustomerScreen()
-            }
-        }
-    }
-}
+import androidx.navigation.NavController
 
 @Composable
 fun MyAppTheme(content: @Composable () -> Unit) {
@@ -38,7 +25,7 @@ fun MyAppTheme(content: @Composable () -> Unit) {
 }
 
 @Composable
-fun CustomerScreen() {
+fun AddCustomerScreen(navController: NavController) {
     var name by remember { mutableStateOf("") }
     var balance by remember { mutableStateOf(0) }
     var debt by remember { mutableStateOf(0) }
@@ -136,13 +123,5 @@ fun CustomerScreen() {
                 }
             }
         )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewCustomerScreen() {
-    MyAppTheme {
-        CustomerScreen()
     }
 }

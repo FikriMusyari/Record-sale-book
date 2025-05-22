@@ -11,10 +11,12 @@ import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.navigation.NavController
+import com.afi.record.presentation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CustomerLedgerScreen() {
+fun CustomerScreen(navController: NavController) {
     var showCreateNew by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
     var showSortBy by remember { mutableStateOf(false) }
@@ -34,7 +36,7 @@ fun CustomerLedgerScreen() {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("anjay", fontWeight = Bold) },
+                title = { Text("Customers", fontWeight = Bold) },
                 actions = {
                     TextButton(onClick = { showSortBy = true }) {
                         Text("Sort by")
@@ -62,7 +64,15 @@ fun CustomerLedgerScreen() {
                 CreateNewDialog(
                     selectedOption = selectedCreateOption,
                     onOptionSelected = { selectedCreateOption = it },
-                    onDismiss = { showCreateNew = false }
+                    onDismiss = { showCreateNew = false },
+                    onCreate = {
+                        showCreateNew = false
+                        when (selectedCreateOption) {
+                            "Queue" -> navController.navigate(Screen.AddQueue.route)
+                            "Customer" -> navController.navigate(Screen.AddCustomer.route)
+                            "Product" -> navController.navigate(Screen.AddProduct.route)
+                        }
+                    }
                 )
             }
 
@@ -99,9 +109,6 @@ fun CustomerLedgerScreen() {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Add a customer to keep track of clients",
                         style = MaterialTheme.typography.bodyMedium)
-
-                    // Display current selections (for debugging/verification)
-
                 }
             }
         }
@@ -112,7 +119,8 @@ fun CustomerLedgerScreen() {
 fun CreateNewDialog(
     selectedOption: String,
     onOptionSelected: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onCreate: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -148,6 +156,10 @@ fun CreateNewDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = onCreate) {
                         Text("Create")
                     }
                 }
@@ -155,6 +167,8 @@ fun CreateNewDialog(
         }
     }
 }
+
+// FiltersDialog and SortByDialog remain the same as in your original code
 
 @Composable
 fun FiltersDialog(
@@ -275,10 +289,3 @@ fun SortByDialog(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun CustomerLedgerScreenPreview() {
-    MaterialTheme {
-        CustomerLedgerScreen()
-    }
-}
