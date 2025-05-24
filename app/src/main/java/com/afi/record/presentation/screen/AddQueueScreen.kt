@@ -89,7 +89,7 @@ fun AddQueueScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Divider()
+
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -109,7 +109,7 @@ fun AddQueueScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Divider()
+
 
         Spacer(modifier = Modifier.height(16.dp))
 

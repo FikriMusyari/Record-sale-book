@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -40,36 +39,43 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.afi.record.presentation.AuthViewModel
+import com.afi.record.domain.models.Users
+import com.afi.record.domain.useCase.AuthResult
 import com.afi.record.presentation.Screen
+import com.afi.record.presentation.viewmodel.AuthViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
-fun SignUpScreen(navController: NavController) {
-    val authViewModel: AuthViewModel = viewModel()
+fun SignUpScreen( viewModel: AuthViewModel, navController: NavController) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val authResult by viewModel.authResult.collectAsStateWithLifecycle()
+    val hasNavigated by viewModel.hasNavigated.collectAsStateWithLifecycle()
 
     var nama by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    // Handle Error Message
-    LaunchedEffect(authViewModel.errorMessage) {
-        authViewModel.errorMessage?.let { message ->
-            snackbarHostState.showSnackbar(message)
-            authViewModel.errorMessage = null
-        }
-    }
+    val isLoading = authResult is AuthResult.Loading
 
-    // Handle Success Register
-    LaunchedEffect(authViewModel.currentUser) {
-        if (authViewModel.currentUser != null) {
+    LaunchedEffect(hasNavigated) {
+        if (hasNavigated) {
             navController.navigate(Screen.Dashboard.route) {
                 popUpTo(Screen.SignUp.route) { inclusive = true }
             }
+            viewModel.resetNavigation()
         }
+    }
+
+    when (val result = authResult) {
+        is AuthResult.Error -> {
+            LaunchedEffect(snackbarHostState) {
+                snackbarHostState.showSnackbar(result.message)
+                viewModel.clearError()
+            }
+        }
+        else -> {}
     }
 
     Scaffold(
@@ -164,11 +170,7 @@ fun SignUpScreen(navController: NavController) {
 
                 Button(
                     onClick = {
-                        authViewModel.register(
-                            nama = nama,
-                            email = email,
-                            password = password
-                        ) {}
+                        viewModel.register(Users(nama, email, password))
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -178,9 +180,9 @@ fun SignUpScreen(navController: NavController) {
                         containerColor = Color(0xFF0F2D7A),
                         contentColor = Color.White
                     ),
-                    enabled = !authViewModel.isLoading
+                    enabled = !isLoading
                 ) {
-                    if (authViewModel.isLoading) {
+                    if (isLoading) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
                             color = Color.White
