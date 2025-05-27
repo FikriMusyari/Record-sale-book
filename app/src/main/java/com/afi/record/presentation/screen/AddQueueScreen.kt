@@ -1,6 +1,8 @@
 package com.afi.record.presentation.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,7 +14,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -29,12 +30,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.afi.record.presentation.Screen
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
 
 @Composable
 fun AppTheme(content: @Composable () -> Unit) {
@@ -79,17 +83,14 @@ fun AddQueueScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Customer Section
+        // Modified Customer Section with click
         CustomerSection(
             date = selectedDate,
             status = selectedStatus,
             onDateClick = { showDatePicker = true },
-            onStatusClick = { showStatusOptions = true }
+            onStatusClick = { showStatusOptions = true },
+            onCustomerClick = { navController.navigate(Screen.SelectCostumer.route) }
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -106,10 +107,6 @@ fun AddQueueScreen(navController: NavController) {
             grandTotal = grandTotal,
             totalDiscount = totalDiscount
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -211,19 +208,29 @@ fun AddQueueScreen(navController: NavController) {
         )
     }
 
-    // Product Order Dialog
+    // Dalam AddQueueScreen, ubah bagian AlertDialog untuk product order menjadi:
     if (showProductOrder) {
         AlertDialog(
             onDismissRequest = { showProductOrder = false },
             title = { Text("Make product orders") },
             text = {
                 Column {
-                    TextField(
-                        value = productName,
-                        onValueChange = { productName = it },
-                        label = { Text("Product") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    // Field Product yang bisa diklik
+                    // Ganti TextField/OutlinedTextField dengan ini:
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                navController.navigate(Screen.SelectProduct.route)
+                                showProductOrder = false
+                            }
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = if (productName.isEmpty()) "Pilih Produk" else productName,
+                            color = if (productName.isEmpty()) Color.Gray else Color.Black
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -316,13 +323,17 @@ fun CustomerSection(
     date: String,
     status: String,
     onDateClick: () -> Unit,
-    onStatusClick: () -> Unit
+    onStatusClick: () -> Unit,
+    onCustomerClick: () -> Unit
 ) {
     Column {
         Text(
             text = "Customer",
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .clickable(onClick = onCustomerClick)
+                .padding(bottom = 8.dp)
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -350,6 +361,7 @@ fun CustomerSection(
         }
     }
 }
+
 
 @Composable
 fun ProductOrdersSection(

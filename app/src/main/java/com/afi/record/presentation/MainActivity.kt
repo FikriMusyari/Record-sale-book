@@ -1,5 +1,6 @@
 package com.afi.record.presentation
 
+import SelectCustomerScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,15 +15,16 @@ import androidx.navigation.compose.rememberNavController
 import com.afi.record.presentation.component.BottomNavigationBar
 import com.afi.record.presentation.screen.AddCustomerScreen
 import com.afi.record.presentation.screen.AddProductScreen
-import com.afi.record.presentation.screen.ProductScreen
 import com.afi.record.presentation.screen.AddQueueScreen
 import com.afi.record.presentation.screen.DashboardScreen
+import com.afi.record.presentation.screen.ProductScreen
 import com.afi.record.presentation.screen.QueueScreen
+import com.afi.record.presentation.screen.SelectProductScreen
 import com.afi.record.presentation.screen.SignInScreen
 import com.afi.record.presentation.screen.SignUpScreen
 import com.afi.record.presentation.ui.theme.RecordTheme
-import dagger.hilt.android.AndroidEntryPoint
 import com.afi.record.presentation.viewmodel.AuthViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -75,6 +77,12 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Screen.AddQueue.route) {
                             AddQueueScreen(navController)
+                        }
+                        composable(Screen.SelectProduct.route) {
+                            SelectProductScreen(navController)
+                        }
+                        composable(Screen.SelectCostumer.route) {
+                            SelectCustomerScreen(navController)
                         }
                     }
                 }
