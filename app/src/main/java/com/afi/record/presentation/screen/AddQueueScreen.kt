@@ -54,6 +54,7 @@ fun AddQueueScreen(navController: NavController) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showStatusOptions by remember { mutableStateOf(false) }
     var showProductOrder by remember { mutableStateOf(false) }
+    var showConfirmationDialog by remember { mutableStateOf(false) } // Added confirmation dialog state
 
     var selectedDate by remember { mutableStateOf(getCurrentDate()) }
     var selectedDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -112,6 +113,17 @@ fun AddQueueScreen(navController: NavController) {
 
         // Note Section
         NoteSection()
+
+        // Add Save Button that shows confirmation dialog
+        Spacer(modifier = Modifier.weight(1f))
+        TextButton(
+            onClick = { showConfirmationDialog = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp)
+        ) {
+            Text("Save Queue")
+        }
     }
 
     // Date Picker Dialog
@@ -208,15 +220,13 @@ fun AddQueueScreen(navController: NavController) {
         )
     }
 
-    // Dalam AddQueueScreen, ubah bagian AlertDialog untuk product order menjadi:
+    // Product Order Dialog
     if (showProductOrder) {
         AlertDialog(
             onDismissRequest = { showProductOrder = false },
             title = { Text("Make product orders") },
             text = {
                 Column {
-                    // Field Product yang bisa diklik
-                    // Ganti TextField/OutlinedTextField dengan ini:
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -303,6 +313,35 @@ fun AddQueueScreen(navController: NavController) {
             dismissButton = {
                 TextButton(
                     onClick = { showProductOrder = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Added Confirmation Dialog
+    if (showConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmationDialog = false },
+            title = { Text("Confirm Queue") },
+            text = {
+                Text("Are you sure you want to save this queue?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showConfirmationDialog = false
+                        // Here you would typically save the data and navigate back
+                        navController.popBackStack()
+                    }
+                ) {
+                    Text("Confirm")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showConfirmationDialog = false }
                 ) {
                     Text("Cancel")
                 }
