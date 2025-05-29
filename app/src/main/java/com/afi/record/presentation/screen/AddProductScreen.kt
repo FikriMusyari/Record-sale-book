@@ -11,18 +11,43 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.afi.record.domain.useCase.AuthResult
+import com.afi.record.presentation.Screen
+import com.afi.record.presentation.viewmodel.ProductViewModel
+import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddProductScreen(navController: NavController) {
-    val productName = remember { mutableStateOf("") }
-    val productPrice = remember { mutableStateOf("") }
+fun AddProductScreen(viewModel: ProductViewModel, navController: NavController) {
+    var nama by remember { mutableStateOf("") }
+    var price by remember { mutableStateOf("") }
+    val createState by viewModel.createProductState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(createState) {
+        when (createState) {
+            is AuthResult.Loading -> {
+            }
+            is AuthResult.Success<*> -> {
+                navController.navigate(Screen.Product.route) {
+                    popUpTo(Screen.AddProduct.route) { inclusive = true }
+                }
+            }
+            is AuthResult.Error -> {
+                val errorMessage = (createState as AuthResult.Error).message
+            }
+            else -> {  }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -38,8 +63,8 @@ fun AddProductScreen(navController: NavController) {
         )
 
         OutlinedTextField(
-            value = productName.value,
-            onValueChange = { productName.value = it },
+            value = nama,
+            onValueChange = { nama = it },
             label = { Text("Name") },
             modifier = Modifier
                 .fillMaxWidth()
@@ -47,8 +72,8 @@ fun AddProductScreen(navController: NavController) {
         )
 
         OutlinedTextField(
-            value = productPrice.value,
-            onValueChange = { productPrice.value = it },
+            value = price,
+            onValueChange = { price = it },
             label = { Text("Price") },
             modifier = Modifier
                 .fillMaxWidth()
@@ -57,20 +82,25 @@ fun AddProductScreen(navController: NavController) {
 
         Button(
             onClick = {
-                // Handle form submission
+                val priceDecimal = try {
+                    BigDecimal(price)
+                } catch (e: Exception) {
+                    null
+                }
+
+                if (nama.isBlank()) {
+                    return@Button
+                }
+
+                if (priceDecimal == null || priceDecimal <= BigDecimal.ZERO) {
+                    return@Button
+                }
+
+                viewModel.createProduct(nama, priceDecimal)
             },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Submit")
         }
     }
-}
-
-@Composable
-fun ProductFormTheme(
-    content: @Composable () -> Unit
-) {
-    MaterialTheme(
-        content = content
-    )
 }

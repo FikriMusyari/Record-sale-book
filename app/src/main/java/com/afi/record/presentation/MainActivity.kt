@@ -1,6 +1,6 @@
 package com.afi.record.presentation
 
-import SelectCustomerScreen
+import com.afi.record.presentation.screen.SelectCustomerScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,6 +24,7 @@ import com.afi.record.presentation.screen.SignInScreen
 import com.afi.record.presentation.screen.SignUpScreen
 import com.afi.record.presentation.ui.theme.RecordTheme
 import com.afi.record.presentation.viewmodel.AuthViewModel
+import com.afi.record.presentation.viewmodel.ProductViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -73,7 +74,8 @@ class MainActivity : ComponentActivity() {
                             AddCustomerScreen(navController)
                         }
                         composable(Screen.AddProduct.route) {
-                            AddProductScreen(navController)
+                            val viewModel: ProductViewModel = hiltViewModel()
+                            AddProductScreen(viewModel, navController)
                         }
                         composable(Screen.AddQueue.route) {
                             AddQueueScreen(navController)

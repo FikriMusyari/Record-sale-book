@@ -12,13 +12,8 @@ data class LoginRequest(
 )
 
 data class UserResponse(
-    val id: Int,
     val nama: String,
-    val email: String
-)
-
-data class AuthResponse(
-    val token: String,
-    val user: UserResponse
+    val email: String,
+    val token: String
 )
 

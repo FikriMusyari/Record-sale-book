@@ -61,7 +61,7 @@ fun SignUpScreen( viewModel: AuthViewModel, navController: NavController) {
 
     LaunchedEffect(hasNavigated) {
         if (hasNavigated) {
-            navController.navigate(Screen.Dashboard.route) {
+            navController.navigate(Screen.SignIn.route) {
                 popUpTo(Screen.SignUp.route) { inclusive = true }
             }
             viewModel.resetNavigation()

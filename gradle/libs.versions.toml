@@ -13,6 +13,7 @@ hilt-version = "2.51"
 hilt-navigation = "1.2.0"
 retrofit = "2.11.0"
 lifecycle-compose = "2.7.0"
+security-crypto = "1.1.0-alpha06"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -43,6 +44,9 @@ gson-converter = { group = "com.squareup.retrofit2", name = "converter-gson", ve
 
 # Lifecycle Compose
 lifecycle-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle-compose" }
+
+# Security Crypto
+security-crypto = {group = "androidx.security", name = "security-crypto", version.ref = "security-crypto"}
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

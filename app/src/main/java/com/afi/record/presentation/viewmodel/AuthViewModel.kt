@@ -14,7 +14,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
     private val _authResult = MutableStateFlow<AuthResult?>(null)
@@ -28,6 +29,10 @@ class AuthViewModel @Inject constructor(
             _authResult.value = AuthResult.Loading
             try {
                 val response = apiService.login(request)
+                val token = response.token
+                if(token != null) {
+                    tokenManager.saveToken(token)
+                }
                 _authResult.value = AuthResult.Success(response)
                 _hasNavigated.value = true
             } catch (e: Exception) {

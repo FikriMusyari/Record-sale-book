@@ -65,6 +65,9 @@ dependencies {
     // Lifecycle Runtime Compose
     implementation(libs.lifecycle.compose)
 
+    // Security Crypto
+    implementation(libs.security.crypto)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
