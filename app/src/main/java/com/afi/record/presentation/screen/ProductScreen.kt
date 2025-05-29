@@ -15,8 +15,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -30,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -79,7 +82,8 @@ fun ProductScreen(viewModel: ProductViewModel, navController: NavController) {
                         Spacer(modifier = Modifier.width(16.dp))
                         TextField(
                             value = searchQuery,
-                            onValueChange = { viewModel.onSearchQueryChanged(it) },
+                            onValueChange = {  newQWuery ->
+                                viewModel.searchProducts(newQWuery) },
                             placeholder = { Text("Search products...") },
                             modifier = Modifier.weight(1f), // Mengambil sisa ruang
                             singleLine = true,
@@ -91,7 +95,8 @@ fun ProductScreen(viewModel: ProductViewModel, navController: NavController) {
                             },
                             trailingIcon = {
                                 if (searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
+                                    IconButton(onClick = {
+                                        viewModel.searchProducts("") }) {
                                         Icon(
                                             Icons.Filled.Clear,
                                             contentDescription = "Clear Search"
