@@ -36,7 +36,7 @@ interface ApiService {
     suspend fun getAllProducts(): ProductResponse
 
     @GET("api/products/search")
-    suspend fun searchproducts(@Query("q") query: String): ProductsSearchResponse
+    suspend fun searchproducts(@Query("nama") query: String): ProductsSearchResponse
 
     @PUT("api/products/{productId}")
     suspend fun updateProduct(@Path("productId") productId: Number, @Body request: UpdateProductRequest): Products
