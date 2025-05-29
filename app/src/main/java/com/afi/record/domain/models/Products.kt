@@ -1,12 +1,10 @@
 package com.afi.record.domain.models
 
-import java.math.BigDecimal
-
 data class Products(
     val id: Int,
     val nama: String,
     val price: String,
-    val userId: Number
+    val userId: Int
 )
 
 data class ProductsSearchResponse(
@@ -19,7 +17,12 @@ data class CreateProductRequest(
 )
 
 data class UpdateProductRequest(
+    val id: Int,
      val nama: String?,
-     val price: BigDecimal?,
+     val price: Number?,
  )
+
+data class ProductResponse(
+    val data: List<Products>
+)
 

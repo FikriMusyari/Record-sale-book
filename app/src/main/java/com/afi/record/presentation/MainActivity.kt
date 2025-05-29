@@ -66,7 +66,8 @@ class MainActivity : ComponentActivity() {
                             QueueScreen(navController)
                         }
                         composable(Screen.Product.route) {
-                            ProductScreen(navController)
+                            val viewModel: ProductViewModel = hiltViewModel()
+                            ProductScreen(viewModel,navController)
                         }
 
                         // Add screens (no bottom nav)

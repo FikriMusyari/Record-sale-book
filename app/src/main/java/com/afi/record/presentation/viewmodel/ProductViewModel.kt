@@ -1,192 +1,109 @@
 package com.afi.record.presentation.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.afi.record.data.remotes.ApiService
 import com.afi.record.domain.models.CreateProductRequest
-import com.afi.record.domain.models.Products
 import com.afi.record.domain.models.UpdateProductRequest
-import com.afi.record.domain.repository.ProductRepo
-import com.afi.record.domain.useCase.AuthResult
+import com.afi.record.domain.useCase.ProductResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
-import java.math.BigDecimal
 import javax.inject.Inject
 
 
 @HiltViewModel
 class ProductViewModel @Inject constructor(
-    private val productRepository: ProductRepo,
+    private val apiService: ApiService,
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
     private val userId: Int? = tokenManager.getUserId()
 
-    private val _productsState = MutableStateFlow<AuthResult>(AuthResult.Loading)
-    val productsState: StateFlow<AuthResult> = _productsState
-
-    private val _selectedProductState = MutableStateFlow<AuthResult?>(null)
-    val selectedProductState: StateFlow<AuthResult?> = _selectedProductState
-
-    private val _createProductState = MutableStateFlow<AuthResult?>(null)
-    val createProductState: StateFlow<AuthResult?> = _createProductState
-
-    private val _updateProductState = MutableStateFlow<AuthResult?>(null)
-    val updateProductState: StateFlow<AuthResult?> = _updateProductState
-
-    private val _deleteProductState = MutableStateFlow<AuthResult?>(null)
-    val deleteProductState: StateFlow<AuthResult?> = _deleteProductState
+    private val _productsState = MutableStateFlow<ProductResult?>(null)
+    val productsState: StateFlow<ProductResult?> get() = _productsState
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
 
-    init {
-        _searchQuery
-            .debounce(300L)
-            .distinctUntilChanged()
-            .onEach { query ->
-                fetchProducts(query.ifBlank { null })
-            }
-            .launchIn(viewModelScope)
-    }
-
-    private fun currentQuery(): String? = _searchQuery.value.ifBlank { null }
-
-        fun onSearchQueryChanged(query: String) {
+    fun searchProducts(query: String) {
         _searchQuery.value = query
+        viewModelScope.launch {
+            _productsState.value = ProductResult.Loading
+            try {
+                val response = apiService.searchproducts(query)
+                val products = response.data ?: emptyList()
+                _productsState.value = ProductResult.Success(products)
+            } catch (e: Exception) {
+                _productsState.value = ProductResult.Error(e.localizedMessage ?: "Unknown error")
+            }
+        }
     }
 
-    fun fetchProducts(query: String? = currentQuery()) {
+
+    fun createProduct(request: CreateProductRequest) {
+        viewModelScope.launch {
+            _productsState.value = ProductResult.Loading
+            try {
+                val createdProduct = apiService.createProduct(request)
+                _productsState.value = ProductResult.Success(listOf(createdProduct))
+                getAllProducts()
+            } catch (e: Exception) {
+                _productsState.value = ProductResult.Error(e.localizedMessage ?: "Unknown error")
+            }
+        }
+    }
+
+    fun getAllProducts() {
         if (userId == null) {
-            _productsState.value = AuthResult.Error("Pengguna tidak diautentikasi. Tidak dapat memuat produk.")
+            _productsState.value = ProductResult.Error("Pengguna tidak diautentikasi. Tidak dapat memuat produk.")
             return
         }
         viewModelScope.launch {
-            _productsState.value = AuthResult.Loading
+            _productsState.value = ProductResult.Loading
             try {
-                val products: List<Products> = if (query.isNullOrBlank()) {
-                    productRepository.getAllProduct()
-                } else {
-                    productRepository.searchproduct(query)
-                }
-
+                val response = apiService.getAllProducts()
+                val products = response.data
                 val filteredProducts = products.filter { it.userId.toInt() == userId }
 
-                _productsState.value = AuthResult.Success(filteredProducts)
+                _productsState.value = ProductResult.Success(filteredProducts)
             } catch (e: Exception) {
-                val errorMessage = if (query.isNullOrBlank()) "Gagal mengambil semua produk" else "Gagal mencari produk"
-                _productsState.value = AuthResult.Error("$errorMessage: ${e.localizedMessage ?: "Unknown error"}")
+                _productsState.value = ProductResult.Error(e.localizedMessage ?: "Unknown error")
             }
         }
     }
 
-    fun createProduct(nama: String, price: Number) {
-        val request = CreateProductRequest(nama = nama, price = price)
+    fun updateProduct(productId: Number, request: UpdateProductRequest) {
         viewModelScope.launch {
-            productRepository.createProduct(request)
-                .onStart { _createProductState.value = AuthResult.Loading }
-                .catch { e ->
-                    _createProductState.value = AuthResult.Error("Gagal membuat produk: ${e.localizedMessage ?: "Unknown error"}")
-                }
-                .collect { result: AuthResult ->
-                    _createProductState.value = result
-                    if (result is AuthResult.Success<*>) {
-                        fetchProducts(_searchQuery.value.ifBlank { null })
-                    }
-                }
-        }
-    }
-
-    fun updateProduct(productId: Number, nama: String?, price: BigDecimal?) {
-        val request = UpdateProductRequest(nama = nama, price = price)
-        viewModelScope.launch {
-            productRepository.updateProduct(productId, request)
-                .onStart { _updateProductState.value = AuthResult.Loading }
-                .catch { e ->
-
-                    _updateProductState.value = AuthResult.Error("Gagal memperbarui produk (Flow error): ${e.localizedMessage ?: "Unknown error"}")
-                }
-                .collect { result: AuthResult ->
-                    _updateProductState.value = result
-
-                    if (result is AuthResult.Success<*>) {
-
-                        fetchProducts(currentQuery())
-
-                        val currentSelectedState: AuthResult? = _selectedProductState.value
-
-                        if (currentSelectedState is AuthResult.Success<*>) {
-
-                            val selectedProduct = currentSelectedState.data as? Products
-
-                            val idFromSelectedProduct = selectedProduct?.id?.toString()
-                            val idProductToUpdate = productId.toString()
-
-                            if (idFromSelectedProduct == idProductToUpdate) {
-
-                                val updatedProductDataFromFlow = result.data
-
-                                if (updatedProductDataFromFlow is Products) {
-
-                                    _selectedProductState.value = AuthResult.Success(updatedProductDataFromFlow)
-                                } else {
-
-                                    Log.e("ProductViewModel", "Error: Data sukses dari updateProduct bukan Products. Tipe aktual: ${updatedProductDataFromFlow?.javaClass?.name}")
-                                    _selectedProductState.value = AuthResult.Error("Gagal memperbarui detail produk terpilih (tipe data salah).")
-                                }
-                            }
-                        }
-                    }
-                }
+            _productsState.value = ProductResult.Loading
+            try {
+                val updatedProduct = apiService.updateProduct(productId, request)
+                _productsState.value = ProductResult.Success(listOf(updatedProduct))
+                getAllProducts()
+            } catch (e: Exception) {
+                _productsState.value = ProductResult.Error(e.localizedMessage ?: "Unknown error")
+            }
         }
     }
 
     fun deleteProduct(productId: Number) {
         viewModelScope.launch {
-            productRepository.deleteProduct(productId)
-                .onStart { _deleteProductState.value = AuthResult.Loading }
-                .catch { e ->
-                    _deleteProductState.value = AuthResult.Error("Gagal menghapus produk: ${e.localizedMessage ?: "Unknown error"}")
-                }
-                .collect { result: AuthResult ->
-                    _deleteProductState.value = result
-                    if (result is AuthResult.Success<*>) {
-                        fetchProducts(_searchQuery.value.ifBlank { null })
-                        val currentSelected = _selectedProductState.value
-                        if (currentSelected is AuthResult.Success<*>) {
-                            val selectedData = currentSelected.data as? Products
-
-                            if (selectedData?.id == productId) {
-                                _selectedProductState.value = AuthResult.Success(null)
-                            }
-                        }
-                    }
-                }
+            _productsState.value = ProductResult.Loading
+            try {
+                apiService.deleteProduct(productId)
+                // Setelah delete, refresh seluruh produk
+                getAllProducts()
+            } catch (e: Exception) {
+                _productsState.value = ProductResult.Error(e.localizedMessage ?: "Unknown error")
+            }
         }
     }
 
-    fun resetCreateProductState() {
-        _createProductState.value = null
-    }
-
-    fun resetUpdateProductState() {
-        _updateProductState.value = null
-    }
-
-    fun resetDeleteProductState() {
-        _deleteProductState.value = null
-    }
-
-    fun resetSelectedProductState() {
-        _selectedProductState.value = null
+    // Clear error state
+    fun clearError() {
+        if (_productsState.value is ProductResult.Error) {
+            _productsState.value = null
+        }
     }
 }

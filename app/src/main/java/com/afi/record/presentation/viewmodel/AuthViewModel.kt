@@ -29,7 +29,7 @@ class AuthViewModel @Inject constructor(
             _authResult.value = AuthResult.Loading
             try {
                 val response = apiService.login(request)
-                val token = response.token
+                val token = response.data.token
                 if(token != null) {
                     tokenManager.saveToken(token)
                 }

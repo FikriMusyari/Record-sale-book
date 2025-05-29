@@ -68,6 +68,9 @@ dependencies {
     // Security Crypto
     implementation(libs.security.crypto)
 
+    // Logging-Interceptor
+    implementation(libs.logging.interceptor)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

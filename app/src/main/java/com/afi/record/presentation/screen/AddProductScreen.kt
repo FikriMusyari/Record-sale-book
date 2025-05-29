@@ -21,29 +21,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.afi.record.domain.useCase.AuthResult
+import com.afi.record.domain.models.CreateProductRequest
+import com.afi.record.domain.useCase.ProductResult
 import com.afi.record.presentation.Screen
 import com.afi.record.presentation.viewmodel.ProductViewModel
-import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddProductScreen(viewModel: ProductViewModel, navController: NavController) {
     var nama by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
-    val createState by viewModel.createProductState.collectAsStateWithLifecycle()
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val createState by viewModel.productsState.collectAsStateWithLifecycle()
 
     LaunchedEffect(createState) {
         when (createState) {
-            is AuthResult.Loading -> {
+            is ProductResult.Loading -> {
             }
-            is AuthResult.Success<*> -> {
+            is ProductResult.Success -> {
                 navController.navigate(Screen.Product.route) {
                     popUpTo(Screen.AddProduct.route) { inclusive = true }
                 }
             }
-            is AuthResult.Error -> {
-                val errorMessage = (createState as AuthResult.Error).message
+            is ProductResult.Error -> {
+                val errorMessage = (createState as ProductResult.Error).message
             }
             else -> {  }
         }
@@ -73,7 +74,10 @@ fun AddProductScreen(viewModel: ProductViewModel, navController: NavController) 
 
         OutlinedTextField(
             value = price,
-            onValueChange = { price = it },
+            onValueChange = { input ->
+                if (input.matches(Regex("^\\d*\\.?\\d*\$"))) {
+                    price = input
+                } },
             label = { Text("Price") },
             modifier = Modifier
                 .fillMaxWidth()
@@ -82,21 +86,15 @@ fun AddProductScreen(viewModel: ProductViewModel, navController: NavController) 
 
         Button(
             onClick = {
-                val priceDecimal = try {
-                    BigDecimal(price)
-                } catch (e: Exception) {
-                    null
-                }
-
+                val priceDouble = price.toDoubleOrNull()
                 if (nama.isBlank()) {
-                    return@Button
+                    errorMessage = "Name tidak boleh kosong"
+                } else if (priceDouble == null) {
+                    errorMessage = "Harga tidak valid"
+                } else {
+                    errorMessage = null
+                    viewModel.createProduct(CreateProductRequest(nama, priceDouble))
                 }
-
-                if (priceDecimal == null || priceDecimal <= BigDecimal.ZERO) {
-                    return@Button
-                }
-
-                viewModel.createProduct(nama, priceDecimal)
             },
             modifier = Modifier.fillMaxWidth()
         ) {

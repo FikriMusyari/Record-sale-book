@@ -14,6 +14,7 @@ hilt-navigation = "1.2.0"
 retrofit = "2.11.0"
 lifecycle-compose = "2.7.0"
 security-crypto = "1.1.0-alpha06"
+logging-interceptor="4.12.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -47,6 +48,9 @@ lifecycle-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-co
 
 # Security Crypto
 security-crypto = {group = "androidx.security", name = "security-crypto", version.ref = "security-crypto"}
+
+# Logging-Interceptor
+logging-interceptor = {group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "logging-interceptor"}
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -5,7 +5,10 @@ import com.afi.record.domain.models.CreateProductRequest
 import com.afi.record.domain.models.CreateQueueRequest
 import com.afi.record.domain.models.Customers
 import com.afi.record.domain.models.LoginRequest
+import com.afi.record.domain.models.LoginResponse
+import com.afi.record.domain.models.ProductResponse
 import com.afi.record.domain.models.Products
+import com.afi.record.domain.models.ProductsSearchResponse
 import com.afi.record.domain.models.UpdateCustomersRequest
 import com.afi.record.domain.models.UpdateProductRequest
 import com.afi.record.domain.models.UpdateQueueRequest
@@ -21,7 +24,7 @@ import retrofit2.http.Query
 
 interface ApiService {
     @POST("api/users/login")
-    suspend fun login(@Body request: LoginRequest): UserResponse
+    suspend fun login(@Body request: LoginRequest): LoginResponse
 
     @POST("api/users")
     suspend fun register(@Body user: Users): UserResponse
@@ -30,10 +33,10 @@ interface ApiService {
     suspend fun createProduct(@Body request: CreateProductRequest): Products
 
     @GET("api/products")
-    suspend fun getAllProducts(): List<Products>
+    suspend fun getAllProducts(): ProductResponse
 
     @GET("api/products/search")
-    suspend fun searchproducts(@Query("q") query: String): List<Products>
+    suspend fun searchproducts(@Query("q") query: String): ProductsSearchResponse
 
     @PUT("api/products/{productId}")
     suspend fun updateProduct(@Path("productId") productId: Number, @Body request: UpdateProductRequest): Products

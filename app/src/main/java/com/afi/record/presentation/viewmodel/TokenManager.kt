@@ -42,7 +42,7 @@ class TokenManager @Inject constructor(@ApplicationContext context: Context) {
     fun getUserId(): Int? {
         val token = getToken() ?: return null
         val parts = token.split(".")
-        if (parts.size != 3) return null // token invalid
+        if (parts.size != 3) return null
 
         return try {
             val payload = parts[1]
