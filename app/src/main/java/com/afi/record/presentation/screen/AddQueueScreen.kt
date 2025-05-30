@@ -90,7 +90,7 @@ fun AddQueueScreen(navController: NavController) {
             status = selectedStatus,
             onDateClick = { showDatePicker = true },
             onStatusClick = { showStatusOptions = true },
-            onCustomerClick = { navController.navigate(Screen.SelectCostumer.route) }
+            onCustomerClick = { navController.navigate(Screen.SelectCustomer.route) }
         )
 
         Spacer(modifier = Modifier.height(16.dp))

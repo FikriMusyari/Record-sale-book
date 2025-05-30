@@ -44,7 +44,7 @@ interface ApiService {
     @DELETE("api/products/{productId}")
     suspend fun deleteProduct(@Path("productId") productId: Number)
 
-
+//cust
     @POST("api/customers")
     suspend fun createCustomers(@Body request: CreateCustomersRequest)
 
@@ -56,6 +56,9 @@ interface ApiService {
 
     @GET("api/customers/search")
     suspend fun searchcustomers(@Query("q") query: String): List<Customers>
+
+    @DELETE("api/customers/{customerId}")
+    suspend fun deleteCustomer(@Path("customerId") customerId: String)
 
 
     @POST("api/queue")

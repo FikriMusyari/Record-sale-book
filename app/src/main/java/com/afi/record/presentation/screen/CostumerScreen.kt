@@ -1,74 +1,60 @@
- // package com.afi.record.presentation.screen
+package com.afi.record.presentation.screen
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.afi.record.domain.models.Customers
 import com.afi.record.presentation.Screen
+import com.afi.record.presentation.viewmodel.CustomerViewModel
+import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CustomerScreen(navController: NavController) {
+fun CustomerScreen(
+    navController: NavController,
+    viewModel: CustomerViewModel = hiltViewModel()
+) {
+    val customers by viewModel.customers.collectAsStateWithLifecycle()
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+
     var showCreateNew by remember { mutableStateOf(false) }
-    var showFilters by remember { mutableStateOf(false) }
-    var showSortBy by remember { mutableStateOf(false) }
+    var createName by remember { mutableStateOf("") }
+    var createBalance by remember { mutableStateOf("") }
 
-    // State for create new options
-    var selectedCreateOption by remember { mutableStateOf("Customer") }
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorText by remember { mutableStateOf("") }
 
-    // State for sorting
-    var selectedSortOption by remember { mutableStateOf("Name") }
+    // Load data when first composed
+    LaunchedEffect(Unit) {
+        viewModel.getAllCustomers()
+    }
 
-    // State for filters
-    var balanceMinChecked by remember { mutableStateOf(false) }
-    var balanceMaxChecked by remember { mutableStateOf(false) }
-    var debtMinChecked by remember { mutableStateOf(false) }
-    var debtMaxChecked by remember { mutableStateOf(false) }
+    // Show error dialog if errorMessage updated
+    LaunchedEffect(errorMessage) {
+        if (!errorMessage.isNullOrEmpty()) {
+            errorText = errorMessage ?: ""
+            showErrorDialog = true
+            viewModel.clearError()
+        }
+    }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Customers", fontWeight = Bold) },
-                actions = {
-                    TextButton(onClick = { showSortBy = true }) {
-                        Text("Sort by")
-                    }
-                    TextButton(onClick = { showFilters = true }) {
-                        Text("Filters")
-                    }
-                }
+                title = { Text("Customers", fontWeight = Bold) }
             )
         },
         floatingActionButton = {
@@ -76,240 +62,198 @@ fun CustomerScreen(navController: NavController) {
                 onClick = { showCreateNew = true },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
+                Icon(Icons.Default.Add, contentDescription = "Add Customer")
             }
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            Divider()
 
-            // Dialogs
-            if (showCreateNew) {
-                CreateNewDialog(
-                    selectedOption = selectedCreateOption,
-                    onOptionSelected = { selectedCreateOption = it },
-                    onDismiss = { showCreateNew = false },
-                    onCreate = {
-                        showCreateNew = false
-                        when (selectedCreateOption) {
-                            "Queue" -> navController.navigate(Screen.AddQueue.route)
-                            "Customer" -> navController.navigate(Screen.AddCustomer.route)
-                            "Product" -> navController.navigate(Screen.AddProduct.route)
-                        }
-                    }
-                )
-            }
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)) {
 
-            if (showFilters) {
-                FiltersDialog(
-                    balanceMinChecked = balanceMinChecked,
-                    balanceMaxChecked = balanceMaxChecked,
-                    debtMinChecked = debtMinChecked,
-                    debtMaxChecked = debtMaxChecked,
-                    onBalanceMinChange = { balanceMinChecked = it },
-                    onBalanceMaxChange = { balanceMaxChecked = it },
-                    onDebtMinChange = { debtMinChecked = it },
-                    onDebtMaxChange = { debtMaxChecked = it },
-                    onDismiss = { showFilters = false }
-                )
-            }
-
-            if (showSortBy) {
-                SortByDialog(
-                    selectedOption = selectedSortOption,
-                    onOptionSelected = { selectedSortOption = it },
-                    onDismiss = { showSortBy = false }
-                )
-            }
-
-            // Main content
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                item {
+            if (customers.isEmpty()) {
+                // No customers message
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text("No customers added", style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Add a customer to keep track of clients",
                         style = MaterialTheme.typography.bodyMedium)
                 }
+            } else {
+                // List of customers
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(customers, key = { it.id }) { customer ->
+                        CustomerListItem(
+                            customer = customer,
+                            onDelete = { viewModel.deleteCustomer(customer.id) },
+                            onUpdate = { id, newName, newBalance ->
+                                viewModel.updateCustomer(id, newName, newBalance)
+                            }
+                        )
+                        Divider()
+                    }
+                }
+            }
+        }
+
+        // Create New Customer Dialog
+        if (showCreateNew) {
+            Dialog(onDismissRequest = { showCreateNew = false }) {
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.width(320.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Create New Customer", style = MaterialTheme.typography.titleLarge)
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = createName,
+                            onValueChange = { createName = it },
+                            label = { Text("Name") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = createBalance,
+                            onValueChange = { input ->
+                                // hanya angka dan titik
+                                if (input.matches(Regex("^\\d*\\.?\\d*\$"))) {
+                                    createBalance = input
+                                }
+                            },
+                            label = { Text("Balance") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            TextButton(onClick = { showCreateNew = false }) {
+                                Text("Cancel")
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            TextButton(onClick = {
+                                val balanceDecimal = createBalance.toBigDecimalOrNull()
+                                if (createName.isNotBlank() && balanceDecimal != null) {
+                                    viewModel.createCustomer(createName.trim(), balanceDecimal)
+                                    showCreateNew = false
+                                    createName = ""
+                                    createBalance = ""
+                                } else {
+                                    errorText = "Please enter valid name and balance"
+                                    showErrorDialog = true
+                                }
+                            }) {
+                                Text("Create")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Error dialog
+        if (showErrorDialog) {
+            Dialog(onDismissRequest = { showErrorDialog = false }) {
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.width(280.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("Error", style = MaterialTheme.typography.titleLarge)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(errorText)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        TextButton(onClick = { showErrorDialog = false }) {
+                            Text("OK")
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun CreateNewDialog(
-    selectedOption: String,
-    onOptionSelected: (String) -> Unit,
-    onDismiss: () -> Unit,
-    onCreate: () -> Unit
+fun CustomerListItem(
+    customer: Customers,
+    onDelete: (String) -> Unit,
+    onUpdate: (String, String?, BigDecimal?) -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.width(280.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Create new", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(16.dp))
+    var editMode by remember { mutableStateOf(false) }
+    var editName by remember { mutableStateOf(customer.nama) }
+    var editBalance by remember { mutableStateOf(customer.balance.toPlainString()) }
 
-                val options = listOf("Queue", "Customer", "Product")
-                options.forEach { option ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = option == selectedOption,
-                            onClick = { onOptionSelected(option) }
-                        )
-                        Text(
-                            text = option,
-                            modifier = Modifier.padding(start = 8.dp),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .padding(16.dp)) {
+        if (editMode) {
+            OutlinedTextField(
+                value = editName,
+                onValueChange = { editName = it },
+                label = { Text("Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = editBalance,
+                onValueChange = { input ->
+                    if (input.matches(Regex("^\\d*\\.?\\d*\$"))) {
+                        editBalance = input
                     }
+                },
+                label = { Text("Balance") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                TextButton(onClick = { editMode = false }) {
+                    Text("Cancel")
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel")
+                Spacer(modifier = Modifier.width(8.dp))
+                TextButton(onClick = {
+                    val balanceDecimal = editBalance.toBigDecimalOrNull()
+                    if (editName.isNotBlank() && balanceDecimal != null) {
+                        onUpdate(customer.id, editName.trim(), balanceDecimal)
+                        editMode = false
+                    }
+                }) {
+                    Text("Save")
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(customer.nama, style = MaterialTheme.typography.titleMedium)
+                    Text("Balance: ${customer.balance}", style = MaterialTheme.typography.bodyMedium)
+                }
+                Row {
+                    TextButton(onClick = { editMode = true }) {
+                        Text("Edit")
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    TextButton(onClick = onCreate) {
-                        Text("Create")
+                    TextButton(onClick = { onDelete(customer.id) }) {
+                        Text("Delete")
                     }
                 }
             }
         }
     }
 }
-
-// FiltersDialog and SortByDialog remain the same as in your original code
-
-@Composable
-fun FiltersDialog(
-    balanceMinChecked: Boolean,
-    balanceMaxChecked: Boolean,
-    debtMinChecked: Boolean,
-    debtMaxChecked: Boolean,
-    onBalanceMinChange: (Boolean) -> Unit,
-    onBalanceMaxChange: (Boolean) -> Unit,
-    onDebtMinChange: (Boolean) -> Unit,
-    onDebtMaxChange: (Boolean) -> Unit,
-    onDismiss: () -> Unit
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.width(280.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Filters", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text("Balance", style = MaterialTheme.typography.titleMedium)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = balanceMinChecked,
-                        onCheckedChange = onBalanceMinChange
-                    )
-                    Text("Min", style = MaterialTheme.typography.bodyLarge)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = balanceMaxChecked,
-                        onCheckedChange = onBalanceMaxChange
-                    )
-                    Text("Max", style = MaterialTheme.typography.bodyLarge)
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text("Debt", style = MaterialTheme.typography.titleMedium)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = debtMinChecked,
-                        onCheckedChange = onDebtMinChange
-                    )
-                    Text("Min", style = MaterialTheme.typography.bodyLarge)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = debtMaxChecked,
-                        onCheckedChange = onDebtMaxChange
-                    )
-                    Text("Max", style = MaterialTheme.typography.bodyLarge)
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Apply")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SortByDialog(
-    selectedOption: String,
-    onOptionSelected: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.width(280.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Sort by", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                val sortOptions = listOf("Name", "Balance")
-                sortOptions.forEach { option ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onOptionSelected(option) }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = option == selectedOption,
-                            onClick = { onOptionSelected(option) }
-                        )
-                        Text(
-                            text = option,
-                            modifier = Modifier.padding(start = 8.dp),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Apply")
-                    }
-                }
-            }
-        }
-    }
-}
-
