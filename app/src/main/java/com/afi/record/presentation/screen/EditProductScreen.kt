@@ -46,6 +46,7 @@ import java.math.BigDecimal
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProductScreen( viewModel: ProductViewModel, navController: NavController) {
+
     val productToEditState by viewModel.productToEdit.collectAsStateWithLifecycle()
 
     var productNama by rememberSaveable(productToEditState) { mutableStateOf(productToEditState?.nama ?: "") }
