@@ -1,7 +1,7 @@
 package com.afi.record.di
 
 import com.afi.record.domain.repository.CustomerRepo
-import com.afi.record.domain.repository.CustomerRepoImpl
+import com.afi.record.data.repositoryImpl.CustomerRepoImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

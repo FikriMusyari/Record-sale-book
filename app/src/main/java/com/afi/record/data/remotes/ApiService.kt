@@ -55,7 +55,7 @@ interface ApiService {
     suspend fun getAllCustomers(): List<Customers>
 
     @GET("api/customers/search")
-    suspend fun searchcustomers(@Query("q") query: String): List<Customers>
+    suspend fun searchcustomers(@Query("nama") query: String): List<Customers>
 
     @DELETE("api/customers/{customerId}")
     suspend fun deleteCustomer(@Path("customerId") customerId: String)
