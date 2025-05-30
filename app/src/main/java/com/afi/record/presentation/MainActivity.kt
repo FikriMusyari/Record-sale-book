@@ -16,6 +16,7 @@ import com.afi.record.presentation.component.BottomNavigationBar
 import com.afi.record.presentation.screen.AddCustomerScreen
 import com.afi.record.presentation.screen.AddProductScreen
 import com.afi.record.presentation.screen.AddQueueScreen
+import com.afi.record.presentation.screen.CustomerScreen
 import com.afi.record.presentation.screen.DashboardScreen
 import com.afi.record.presentation.screen.ProductScreen
 import com.afi.record.presentation.screen.QueueScreen
@@ -25,6 +26,7 @@ import com.afi.record.presentation.screen.SignUpScreen
 import com.afi.record.presentation.ui.theme.RecordTheme
 import com.afi.record.presentation.viewmodel.AuthViewModel
 import com.afi.record.presentation.viewmodel.ProductViewModel
+import com.afi.record.presentation.viewmodel.CustomerViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -59,9 +61,16 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.Dashboard.route) {
                             DashboardScreen(navController)
                         }
-//                        composable(Screen.Customer.route) {
-//                            CustomerScreen(navController)
-//                        }
+
+                        composable(Screen.Customer.route) {
+                            val viewModel: CustomerViewModel = hiltViewModel()
+                            CustomerScreen(
+                                navController = navController,
+                                viewModel = viewModel
+                            )
+                        }
+
+
                         composable(Screen.Queue.route) {
                             QueueScreen(navController)
                         }
@@ -84,7 +93,7 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.SelectProduct.route) {
                             SelectProductScreen(navController)
                         }
-                        composable(Screen.SelectCostumer.route) {
+                        composable(Screen.SelectCustomer.route) {
                             SelectCustomerScreen(navController)
                         }
                     }

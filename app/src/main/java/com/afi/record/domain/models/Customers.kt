@@ -5,7 +5,7 @@ import java.math.BigDecimal
 data class Customers(
     val id: String,
     val nama: String,
-    val balance: String,
+    val balance: BigDecimal,
     val userId: String
 )
 
