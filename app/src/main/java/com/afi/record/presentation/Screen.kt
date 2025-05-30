@@ -11,5 +11,4 @@ sealed class Screen(val route: String) {
     object Product : Screen("product")
     object Queue : Screen("queue")
     object SelectProduct : Screen("selectproduct")
-    object SelectCustomer : Screen("selectcustomer")
 }

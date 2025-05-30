@@ -17,7 +17,6 @@ data class CreateProductRequest(
 )
 
 data class UpdateProductRequest(
-    val id: Int,
      val nama: String?,
      val price: Number?,
  )

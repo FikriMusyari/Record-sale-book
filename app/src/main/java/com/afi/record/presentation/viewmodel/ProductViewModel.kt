@@ -4,11 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.afi.record.data.remotes.ApiService
 import com.afi.record.domain.models.CreateProductRequest
+import com.afi.record.domain.models.Products
 import com.afi.record.domain.models.UpdateProductRequest
 import com.afi.record.domain.useCase.ProductResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -16,7 +20,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ProductViewModel @Inject constructor(
     private val apiService: ApiService,
-    private val tokenManager: TokenManager
+    tokenManager: TokenManager
 ) : ViewModel() {
 
     private val userId: Int? = tokenManager.getUserId()
@@ -26,6 +30,22 @@ class ProductViewModel @Inject constructor(
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
+
+    private val _productIdToEdit = MutableStateFlow<Number?>(null)
+    val productToEdit: StateFlow<Products?> = combine(_productIdToEdit, _productsState) { id, productsState ->
+        if (id == null) null
+        else {
+            (productsState as? ProductResult.Success)?.data?.find { it.id.toLong() == id.toLong() }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun setProductId(id: Number) {
+        _productIdToEdit.value = id
+    }
+
+    fun clearProductIdToEdit() {
+        _productIdToEdit.value = null
+    }
 
     fun searchProducts(query: String) {
         _searchQuery.value = query

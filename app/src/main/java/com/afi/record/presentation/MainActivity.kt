@@ -1,6 +1,5 @@
 package com.afi.record.presentation
 
-import com.afi.record.presentation.screen.SelectCustomerScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -18,8 +17,10 @@ import com.afi.record.presentation.screen.AddProductScreen
 import com.afi.record.presentation.screen.AddQueueScreen
 import com.afi.record.presentation.screen.CustomerScreen
 import com.afi.record.presentation.screen.DashboardScreen
+import com.afi.record.presentation.screen.EditProductScreen
 import com.afi.record.presentation.screen.ProductScreen
 import com.afi.record.presentation.screen.QueueScreen
+import com.afi.record.presentation.screen.SelectCustomerScreen
 import com.afi.record.presentation.screen.SelectProductScreen
 import com.afi.record.presentation.screen.SignInScreen
 import com.afi.record.presentation.screen.SignUpScreen
@@ -77,6 +78,10 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.Product.route) {
                             val viewModel: ProductViewModel = hiltViewModel()
                             ProductScreen(viewModel,navController)
+                        }
+                        composable(Screen.EditProduct.route){
+                            val viewModel: ProductViewModel = hiltViewModel()
+                            EditProductScreen(viewModel, navController)
                         }
 
                         // Add screens (no bottom nav)
