@@ -12,4 +12,5 @@ sealed class Screen(val route: String) {
     object Queue : Screen("queue")
     object SelectProduct : Screen("selectproduct")
     object EditProduct : Screen("editproduct")
+    object SelectCustomer : Screen("selectcustomer")
 }
