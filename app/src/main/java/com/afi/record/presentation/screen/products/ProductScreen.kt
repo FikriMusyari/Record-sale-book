@@ -1,6 +1,5 @@
-package com.afi.record.presentation.screen
+package com.afi.record.presentation.screen.products
 
-import CreateNewDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -62,6 +61,7 @@ import androidx.navigation.NavController
 import com.afi.record.domain.models.Products
 import com.afi.record.domain.useCase.ProductResult
 import com.afi.record.presentation.Screen
+import com.afi.record.presentation.screen.CreateNewDialog
 import com.afi.record.presentation.viewmodel.ProductViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

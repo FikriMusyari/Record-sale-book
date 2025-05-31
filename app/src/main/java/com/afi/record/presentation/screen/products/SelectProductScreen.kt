@@ -1,4 +1,5 @@
-package com.afi.record.presentation.screen
+package com.afi.record.presentation.screen.products
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +34,7 @@ import com.afi.record.presentation.Screen
 
 
 @Composable
-fun SelectCustomerScreen(onNewCustomerClicked: NavHostController) {
+fun SelectProductScreen(onNewProductClicked: NavHostController) {
     val searchQuery = remember { mutableStateOf("") }
 
     Scaffold(
@@ -52,7 +53,7 @@ fun SelectCustomerScreen(onNewCustomerClicked: NavHostController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 24.dp),
-                placeholder = { Text("Search customers") },
+                placeholder = { Text("Search products") },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search,
@@ -68,7 +69,7 @@ fun SelectCustomerScreen(onNewCustomerClicked: NavHostController) {
 
             // Title
             Text(
-                text = "Select customer",
+                text = "Select product",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 24.dp)
@@ -84,9 +85,9 @@ fun SelectCustomerScreen(onNewCustomerClicked: NavHostController) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "All customers",
+                    text = "All products",
                     fontSize = 18.sp,
-                    modifier = Modifier.clickable { /* Handle all customers */ }
+                    modifier = Modifier.clickable { /* Handle all products */ }
                 )
 
                 Text(
@@ -95,7 +96,7 @@ fun SelectCustomerScreen(onNewCustomerClicked: NavHostController) {
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable {
-                        onNewCustomerClicked.navigate(Screen.AddCustomer.route)
+                        onNewProductClicked.navigate(Screen.AddProduct.route)
                     }
                 )
             }

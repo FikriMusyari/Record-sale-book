@@ -1,6 +1,5 @@
-package com.afi.record.presentation.screen
+package com.afi.record.presentation.screen.customers
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,7 +16,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.afi.record.domain.models.Customers
-import com.afi.record.presentation.Screen
 import com.afi.record.presentation.viewmodel.CustomerViewModel
 import java.math.BigDecimal
 

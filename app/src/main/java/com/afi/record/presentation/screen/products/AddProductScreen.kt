@@ -1,4 +1,4 @@
-package com.afi.record.presentation.screen
+package com.afi.record.presentation.screen.products
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
