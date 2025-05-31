@@ -11,7 +11,13 @@ data class LoginRequest(
     val password: String
 )
 
-data class LoginResponse(
+data class UpdateUserRequest(
+    val nama: String?,
+    val oldPassword: String?,
+    val newPassword: String?
+)
+
+data class DataUserResponse(
     val data: UserResponse
 )
 

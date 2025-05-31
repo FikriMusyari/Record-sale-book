@@ -3,10 +3,10 @@ package com.afi.record.domain.models
 import java.math.BigDecimal
 
 data class Customers(
-    val id: String,
+    val id: Int,
     val nama: String,
     val balance: BigDecimal,
-    val userId: String
+    val userId: Int
 )
 
 data class CreateCustomersRequest(

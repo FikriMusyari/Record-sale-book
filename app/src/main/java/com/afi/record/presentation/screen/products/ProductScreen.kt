@@ -61,7 +61,7 @@ import androidx.navigation.NavController
 import com.afi.record.domain.models.Products
 import com.afi.record.domain.useCase.ProductResult
 import com.afi.record.presentation.Screen
-import com.afi.record.presentation.screen.CreateNewDialog
+import com.afi.record.presentation.screen.queue.CreateNewDialog
 import com.afi.record.presentation.viewmodel.ProductViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

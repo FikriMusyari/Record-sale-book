@@ -12,22 +12,23 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.afi.record.presentation.component.BottomNavigationBar
-import com.afi.record.presentation.screen.customers.AddCustomerScreen
-import com.afi.record.presentation.screen.products.AddProductScreen
-import com.afi.record.presentation.screen.AddQueueScreen
-import com.afi.record.presentation.screen.customers.CustomerScreen
 import com.afi.record.presentation.screen.DashboardScreen
-import com.afi.record.presentation.screen.products.EditProductScreen
-import com.afi.record.presentation.screen.products.ProductScreen
-import com.afi.record.presentation.screen.QueueScreen
-import com.afi.record.presentation.screen.customers.SelectCustomerScreen
-import com.afi.record.presentation.screen.products.SelectProductScreen
 import com.afi.record.presentation.screen.SignInScreen
 import com.afi.record.presentation.screen.SignUpScreen
+import com.afi.record.presentation.screen.customers.AddCustomerScreen
+import com.afi.record.presentation.screen.customers.CustomerScreen
+import com.afi.record.presentation.screen.customers.SelectCustomerScreen
+import com.afi.record.presentation.screen.products.AddProductScreen
+import com.afi.record.presentation.screen.products.EditProductScreen
+import com.afi.record.presentation.screen.products.ProductScreen
+import com.afi.record.presentation.screen.products.SelectProductScreen
+import com.afi.record.presentation.screen.queue.AddQueueScreen
+import com.afi.record.presentation.screen.queue.QueueScreen
 import com.afi.record.presentation.ui.theme.RecordTheme
 import com.afi.record.presentation.viewmodel.AuthViewModel
-import com.afi.record.presentation.viewmodel.ProductViewModel
 import com.afi.record.presentation.viewmodel.CustomerViewModel
+import com.afi.record.presentation.viewmodel.DashboardViewModel
+import com.afi.record.presentation.viewmodel.ProductViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -60,15 +61,13 @@ class MainActivity : ComponentActivity() {
 
                         // Main screens (with bottom nav)
                         composable(Screen.Dashboard.route) {
-                            DashboardScreen(navController)
+                            val viewModel: DashboardViewModel = hiltViewModel()
+                            DashboardScreen(viewModel, navController)
                         }
 
                         composable(Screen.Customer.route) {
                             val viewModel: CustomerViewModel = hiltViewModel()
-                            CustomerScreen(
-                                navController = navController,
-                                viewModel = viewModel
-                            )
+                            CustomerScreen(viewModel,navController)
                         }
 
 

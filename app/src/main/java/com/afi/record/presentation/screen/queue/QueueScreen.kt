@@ -1,4 +1,4 @@
-package com.afi.record.presentation.screen
+package com.afi.record.presentation.screen.queue
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement

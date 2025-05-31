@@ -18,9 +18,9 @@ class CustomerRepoImpl @Inject constructor(
     override suspend fun createCustomer(request: CreateCustomersRequest) =
         api.createCustomers(request)
 
-    override suspend fun updateCustomer(customerId: String, request: UpdateCustomersRequest) =
+    override suspend fun updateCustomer(customerId: Number, request: UpdateCustomersRequest) =
         api.updateCustomers(customerId, request)
 
-    override suspend fun deleteCustomer(customerId: String) =
+    override suspend fun deleteCustomer(customerId: Number) =
         api.deleteCustomer(customerId)
 }

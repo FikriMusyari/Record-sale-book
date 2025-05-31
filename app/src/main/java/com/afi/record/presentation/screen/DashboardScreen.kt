@@ -14,20 +14,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,20 +43,37 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.afi.record.domain.models.UpdateUserRequest
+import com.afi.record.presentation.Screen
+import com.afi.record.presentation.viewmodel.DashboardViewModel
 
 @Composable
-fun DashboardScreen(navController: NavController) {
+fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController) {
     val scrollState = rememberScrollState()
+    val Datauser by viewModel.userData.collectAsStateWithLifecycle()
     var showDateFilter by remember { mutableStateOf(false) }
     var selectedDateRange by remember { mutableStateOf("All time") }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) }
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var oldPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var nama by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadCurrentUser()
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color(0xFF121212) // Dark background color
+        color = Color(0xFF1E293B) // Dark background color
     ) {
         Column(
             modifier = Modifier
@@ -65,20 +89,121 @@ fun DashboardScreen(navController: NavController) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "anjay",
-                    fontSize = 34.sp,
+                    text = Datauser?.nama ?: "Loading ...",
+                    fontSize = 24.sp,
                     color = Color.LightGray,
                     fontWeight = FontWeight.Normal
                 )
 
-                IconButton(onClick = { /* Settings action */ }) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = Color.LightGray,
-                        modifier = Modifier.size(28.dp)
-                    )
+                Box {
+                    IconButton(onClick = { expanded = true }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
+
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Update Account") },
+                            onClick = {
+                                expanded = false
+                                showChangePasswordDialog = true
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Logout") },
+                            onClick = {
+                                expanded = false
+                                showLogoutDialog = true
+                            }
+                        )
+                    }
                 }
+            }
+
+            if (showChangePasswordDialog) {
+                AlertDialog(
+                    onDismissRequest = {
+                        showChangePasswordDialog = false
+                        nama = ""
+                        oldPassword = ""
+                        newPassword = ""
+                    },
+                    title = { Text("Update Account") },
+                    text = {
+                        Column {
+                            OutlinedTextField(
+                                value = nama,
+                                onValueChange = { nama = it },
+                                label = { Text("Nama User") },
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = oldPassword,
+                                onValueChange = { oldPassword = it },
+                                label = { Text("Password Lama") },
+                                visualTransformation = PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                singleLine = true
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = newPassword,
+                                onValueChange = { newPassword = it },
+                                label = { Text("Password Baru") },
+                                visualTransformation = PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                singleLine = true
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.updateUserProfile(UpdateUserRequest(nama, oldPassword, newPassword))
+                            showChangePasswordDialog = false
+                            nama = ""
+                            oldPassword = ""
+                            newPassword = ""
+                        }) {
+                            Text("Submit")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            showChangePasswordDialog = false
+                            nama = ""
+                            oldPassword = ""
+                            newPassword = ""
+                        }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+
+            if (showLogoutDialog) {
+                AlertDialog(
+                    onDismissRequest = { showLogoutDialog = false },
+                    title = { Text(text = "Logout") },
+                    text = { Text("Are you sure you want to logout?") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.logout()
+                            showLogoutDialog = false
+                            navController.navigate(Screen.SignIn.route) {
+                                popUpTo(0)
+                            }
+                        }) {
+                            Text("Yes")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showLogoutDialog = false }) {
+                            Text("No")
+                        }
+                    }
+                )
             }
 
             // Summary Section
@@ -419,8 +544,7 @@ fun StatItem(icon: String, title: String, count: String, backgroundColor: Color)
 fun DateFilterBottomSheet(
     onDismiss: () -> Unit,
     onDateRangeSelected: (String) -> Unit,
-    currentSelection: String
-) {
+    currentSelection: String) {
     val sheetState = rememberModalBottomSheetState()
 
     ModalBottomSheet(

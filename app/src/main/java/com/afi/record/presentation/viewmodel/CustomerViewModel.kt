@@ -59,7 +59,7 @@ class CustomerViewModel @Inject constructor(
         }
     }
 
-    fun updateCustomer(id: String, nama: String?, balance: BigDecimal?) {
+    fun updateCustomer(id: Number, nama: String?, balance: BigDecimal?) {
         viewModelScope.launch {
             try {
                 val request = UpdateCustomersRequest(nama, balance)
@@ -72,7 +72,7 @@ class CustomerViewModel @Inject constructor(
         }
     }
 
-    fun deleteCustomer(id: String) {
+    fun deleteCustomer(id: Number) {
         viewModelScope.launch {
             try {
                 repo.deleteCustomer(id)

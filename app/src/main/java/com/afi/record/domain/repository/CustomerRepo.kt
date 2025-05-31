@@ -8,6 +8,6 @@ interface CustomerRepo {
     suspend fun getAllCustomers(): List<Customers>
     suspend fun searchcustomers(query: String): List<Customers>
     suspend fun createCustomer(request: CreateCustomersRequest)
-    suspend fun updateCustomer(customerId: String, request: UpdateCustomersRequest)
-    suspend fun deleteCustomer(customerId: String)
+    suspend fun updateCustomer(customerId: Number, request: UpdateCustomersRequest)
+    suspend fun deleteCustomer(customerId: Number)
 }
