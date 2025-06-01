@@ -6,8 +6,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -36,73 +40,92 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             RecordTheme {
-                val navController = rememberNavController()
-
-                Scaffold(
-                    bottomBar = {
-                        BottomNavigationBar(navController)
-                    }
-                ) { innerPadding ->
-                    NavHost(
-                        navController = navController,
-                        startDestination = Screen.SignIn.route,
-                        modifier = Modifier.padding(innerPadding)
-                    ) {
-                        composable(Screen.SignIn.route) {
-                            val viewModel: AuthViewModel = hiltViewModel()
-                            SignInScreen(viewModel, navController)
-                        }
-                        composable(Screen.SignUp.route) {
-                            val viewModel: AuthViewModel = hiltViewModel()
-                            SignUpScreen(viewModel,navController)
-                        }
-
-                        // Main screens (with bottom nav)
-                        composable(Screen.Dashboard.route) {
-                            val viewModel: DashboardViewModel = hiltViewModel()
-                            DashboardScreen(viewModel, navController)
-                        }
-
-                        composable(Screen.Customer.route) {
-                            val viewModel: CustomerViewModel = hiltViewModel()
-                            CustomerScreen(viewModel)
-                        }
-
-
-                        composable(Screen.Queue.route) {
-                            QueueScreen(navController)
-                        }
-                        composable(Screen.Product.route) {
-                            val viewModel: ProductViewModel = hiltViewModel()
-                            ProductScreen(viewModel,navController)
-                        }
-                        composable(Screen.EditProduct.route){
-                            val viewModel: ProductViewModel = hiltViewModel()
-                            EditProductScreen(viewModel, navController)
-                        }
-
-                        // Add screens (no bottom nav)
-                        composable(Screen.AddCustomer.route) {
-                            AddCustomerScreen()
-                        }
-                        composable(Screen.AddProduct.route) {
-                            val viewModel: ProductViewModel = hiltViewModel()
-                            AddProductScreen(viewModel, navController)
-                        }
-                        composable(Screen.AddQueue.route) {
-                            AddQueueScreen(navController)
-                        }
-                        composable(Screen.SelectProduct.route) {
-                            SelectProductScreen(navController)
-                        }
-                        composable(Screen.SelectCustomer.route) {
-                            SelectCustomerScreen(navController)
-                        }
-                    }
-                }
+                MainScreen()
             }
         }
+    }
+}
+
+@Composable
+fun MainScreen() {
+    val navController = rememberNavController()
+
+    Scaffold(
+        bottomBar = { BottomNavigationBar(navController) }
+    ) { innerPadding ->
+        AppNavHost(navController, Modifier.padding(innerPadding))
+    }
+}
+
+@Composable
+fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) {
+    NavHost(
+        navController = navController,
+        startDestination = Screen.SignIn.route,
+        modifier = modifier
+    ) {
+        // Auth screens
+        authNavGraph(navController)
+
+        // Main screens with BottomNav
+        mainNavGraph(navController)
+
+        // Add screens without BottomNav
+        addNavGraph(navController)
+    }
+}
+
+fun NavGraphBuilder.authNavGraph(navController: NavController) {
+    composable(Screen.SignIn.route) {
+        val viewModel: AuthViewModel = hiltViewModel()
+        SignInScreen(viewModel, navController)
+    }
+    composable(Screen.SignUp.route) {
+        val viewModel: AuthViewModel = hiltViewModel()
+        SignUpScreen(viewModel, navController)
+    }
+}
+
+fun NavGraphBuilder.mainNavGraph(navController: NavController) {
+    composable(Screen.Dashboard.route) {
+        val viewModel: DashboardViewModel = hiltViewModel()
+        DashboardScreen(viewModel, navController)
+    }
+    composable(Screen.Customer.route) {
+        val viewModel: CustomerViewModel = hiltViewModel()
+        CustomerScreen(viewModel)
+    }
+    composable(Screen.Queue.route) {
+        QueueScreen(navController)
+    }
+    composable(Screen.Product.route) {
+        val viewModel: ProductViewModel = hiltViewModel()
+        ProductScreen(viewModel, navController)
+    }
+    composable(Screen.EditProduct.route) {
+        val viewModel: ProductViewModel = hiltViewModel()
+        EditProductScreen(viewModel, navController)
+    }
+}
+
+fun NavGraphBuilder.addNavGraph(navController: NavHostController) {
+    composable(Screen.AddCustomer.route) {
+        AddCustomerScreen()
+    }
+    composable(Screen.AddProduct.route) {
+        val viewModel: ProductViewModel = hiltViewModel()
+        AddProductScreen(viewModel, navController)
+    }
+    composable(Screen.AddQueue.route) {
+        AddQueueScreen(navController)
+    }
+    composable(Screen.SelectProduct.route) {
+        SelectProductScreen(navController)
+    }
+    composable(Screen.SelectCustomer.route) {
+        SelectCustomerScreen(navController)
     }
 }

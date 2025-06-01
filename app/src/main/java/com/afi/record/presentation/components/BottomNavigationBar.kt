@@ -11,8 +11,10 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.afi.record.presentation.Screen
 
@@ -47,26 +49,24 @@ sealed class BottomNavItem(
 }
 
 @Composable
-fun BottomNavigationBar(navController: NavController) {
-    val items = listOf(
-        BottomNavItem.Dashboard,
-        BottomNavItem.Customer,
-        BottomNavItem.Queue,
-        BottomNavItem.Product
-    )
+fun BottomNavigationBar(
+    navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
+    val items = remember {
+        listOf(
+            BottomNavItem.Dashboard,
+            BottomNavItem.Customer,
+            BottomNavItem.Queue,
+            BottomNavItem.Product
+        )
+    }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Only show bottom nav for main screens
-    if (currentRoute in setOf(
-            Screen.Dashboard.route,
-            Screen.Customer.route,
-            Screen.Queue.route,
-            Screen.Product.route
-        )
-    ) {
-        NavigationBar {
+    if (currentRoute in items.map { it.route }) {
+        NavigationBar(modifier = modifier) {
             items.forEach { item ->
                 NavigationBarItem(
                     icon = { Icon(item.icon, contentDescription = item.label) },
@@ -74,11 +74,8 @@ fun BottomNavigationBar(navController: NavController) {
                     selected = currentRoute == item.route,
                     onClick = {
                         navController.navigate(item.route) {
-                            // Avoid multiple copies
                             launchSingleTop = true
-                            // Restore state when reselecting
                             restoreState = true
-                            // Pop up to start destination
                             popUpTo(navController.graph.startDestinationId) {
                                 saveState = true
                             }
@@ -89,3 +86,4 @@ fun BottomNavigationBar(navController: NavController) {
         }
     }
 }
+
