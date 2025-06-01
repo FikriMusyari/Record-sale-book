@@ -30,9 +30,7 @@ class AuthViewModel @Inject constructor(
             try {
                 val response = apiService.login(request)
                 val token = response.data.token
-                if(token != null) {
                     tokenManager.saveToken(token)
-                }
                 _authResult.value = AuthResult.Success(response)
                 _hasNavigated.value = true
             } catch (e: Exception) {

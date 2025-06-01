@@ -8,6 +8,7 @@ import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 import android.util.Base64
+import androidx.core.content.edit
 
 @Singleton
 class TokenManager @Inject constructor(@ApplicationContext context: Context) {
@@ -28,15 +29,13 @@ class TokenManager @Inject constructor(@ApplicationContext context: Context) {
     }
 
     fun saveToken(token: String) {
-        sharedPreferences.edit().putString(JWT_TOKEN_KEY, token).apply()
+        sharedPreferences.edit {
+            putString(JWT_TOKEN_KEY, token)
+        }
     }
 
     fun getToken(): String? {
         return sharedPreferences.getString(JWT_TOKEN_KEY, null)
-    }
-
-    fun deleteToken() {
-        sharedPreferences.edit().remove(JWT_TOKEN_KEY).apply()
     }
 
     fun getUserId(): Int? {
@@ -62,7 +61,7 @@ class TokenManager @Inject constructor(@ApplicationContext context: Context) {
             } else {
                 null
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }

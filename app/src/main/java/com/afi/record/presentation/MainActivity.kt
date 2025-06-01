@@ -11,7 +11,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.afi.record.presentation.component.BottomNavigationBar
+import com.afi.record.presentation.components.BottomNavigationBar
 import com.afi.record.presentation.screen.DashboardScreen
 import com.afi.record.presentation.screen.SignInScreen
 import com.afi.record.presentation.screen.SignUpScreen
@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity() {
 
                         composable(Screen.Customer.route) {
                             val viewModel: CustomerViewModel = hiltViewModel()
-                            CustomerScreen(viewModel,navController)
+                            CustomerScreen(viewModel)
                         }
 
 
@@ -85,7 +85,7 @@ class MainActivity : ComponentActivity() {
 
                         // Add screens (no bottom nav)
                         composable(Screen.AddCustomer.route) {
-                            AddCustomerScreen(navController)
+                            AddCustomerScreen()
                         }
                         composable(Screen.AddProduct.route) {
                             val viewModel: ProductViewModel = hiltViewModel()

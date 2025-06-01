@@ -57,7 +57,7 @@ import com.afi.record.presentation.viewmodel.DashboardViewModel
 @Composable
 fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController) {
     val scrollState = rememberScrollState()
-    val Datauser by viewModel.userData.collectAsStateWithLifecycle()
+    val datauser by viewModel.userData.collectAsStateWithLifecycle()
     var showDateFilter by remember { mutableStateOf(false) }
     var selectedDateRange by remember { mutableStateOf("All time") }
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -89,7 +89,7 @@ fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController)
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = Datauser?.nama ?: "Loading ...",
+                    text = datauser?.nama ?: "Loading ...",
                     fontSize = 24.sp,
                     color = Color.LightGray,
                     fontWeight = FontWeight.Normal

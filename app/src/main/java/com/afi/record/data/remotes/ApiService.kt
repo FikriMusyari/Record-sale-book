@@ -38,7 +38,7 @@ interface ApiService {
     suspend fun getUserCurrent(): DataUserResponse
 
     @PATCH("api/users/current")
-    suspend fun UpdateCurrentUser(@Body request: UpdateUserRequest) : UserResponse
+    suspend fun updateCurrentUser(@Body request: UpdateUserRequest) : UserResponse
 
     @DELETE("api/users/logout")
     suspend fun logout()

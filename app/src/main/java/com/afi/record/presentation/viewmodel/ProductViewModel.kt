@@ -119,11 +119,4 @@ class ProductViewModel @Inject constructor(
             }
         }
     }
-
-    // Clear error state
-    fun clearError() {
-        if (_productsState.value is ProductResult.Error) {
-            _productsState.value = null
-        }
-    }
 }

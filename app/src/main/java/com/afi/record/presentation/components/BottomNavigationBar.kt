@@ -1,8 +1,8 @@
-package com.afi.record.presentation.component
+package com.afi.record.presentation.components
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
@@ -35,7 +35,7 @@ sealed class BottomNavItem(
 
     object Queue : BottomNavItem(
         route = Screen.Queue.route,
-        icon = Icons.Default.List,
+        icon = Icons.AutoMirrored.Filled.List,
         label = "Queue"
     )
 

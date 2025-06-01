@@ -3,7 +3,6 @@ package com.afi.record.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.afi.record.data.remotes.ApiService
-import com.afi.record.domain.models.DataUserResponse
 import com.afi.record.domain.models.UpdateUserRequest
 import com.afi.record.domain.models.UserResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,10 +19,8 @@ class DashboardViewModel @Inject constructor(
     val userData: StateFlow<UserResponse?> = _userData
 
     private val _updateResult = MutableStateFlow<UserResponse?>(null)
-    val updateResult: StateFlow<UserResponse?> = _updateResult
 
     private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage
 
     fun loadCurrentUser() {
         viewModelScope.launch {
@@ -39,7 +36,7 @@ class DashboardViewModel @Inject constructor(
     fun updateUserProfile(request: UpdateUserRequest) {
         viewModelScope.launch {
             try {
-                val result = apiService.UpdateCurrentUser(request)
+                val result = apiService.updateCurrentUser(request)
                 _updateResult.value = result
                 loadCurrentUser()
             } catch (e: Exception) {

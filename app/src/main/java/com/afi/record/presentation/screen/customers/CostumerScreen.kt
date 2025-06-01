@@ -15,9 +15,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -37,7 +37,6 @@ import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
 import com.afi.record.domain.models.Customers
 import com.afi.record.presentation.viewmodel.CustomerViewModel
 import java.math.BigDecimal
@@ -45,8 +44,7 @@ import java.math.BigDecimal
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerScreen(
-    viewModel: CustomerViewModel,
-    navController: NavController
+    viewModel: CustomerViewModel
 ) {
     val customers by viewModel.customers.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
@@ -117,7 +115,7 @@ fun CustomerScreen(
                                 viewModel.updateCustomer(id, newName, newBalance)
                             }
                         )
-                        Divider()
+                        HorizontalDivider()
                     }
                 }
             }
@@ -144,8 +142,7 @@ fun CustomerScreen(
                         OutlinedTextField(
                             value = createBalance,
                             onValueChange = { input ->
-                                // hanya angka dan titik
-                                if (input.matches(Regex("^\\d*\\.?\\d*\$"))) {
+                                if (input.matches(Regex("""^\d*\.?\d*$"""))) {
                                     createBalance = input
                                 }
                             },
@@ -232,7 +229,7 @@ fun CustomerListItem(
             OutlinedTextField(
                 value = editBalance,
                 onValueChange = { input ->
-                    if (input.matches(Regex("^\\d*\\.?\\d*\$"))) {
+                    if (input.matches(Regex("""^\d*\.?\d*$"""))) {
                         editBalance = input
                     }
                 },
