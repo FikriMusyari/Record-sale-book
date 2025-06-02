@@ -95,7 +95,7 @@ fun SelectCustomerScreen(onNewCustomerClicked: NavHostController) {
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable {
-                        onNewCustomerClicked.navigate(Screen.AddCustomer.route)
+
                     }
                 )
             }

@@ -2,24 +2,21 @@ package com.afi.record.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.afi.record.data.remotes.ApiService
 import com.afi.record.domain.models.CreateProductRequest
-import com.afi.record.domain.models.Products
 import com.afi.record.domain.models.UpdateProductRequest
+import com.afi.record.domain.repository.ProductRepo
 import com.afi.record.domain.useCase.ProductResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
 import javax.inject.Inject
 
 
 @HiltViewModel
 class ProductViewModel @Inject constructor(
-    private val apiService: ApiService,
+    private val repo: ProductRepo,
     tokenManager: TokenManager
 ) : ViewModel() {
 
@@ -31,50 +28,6 @@ class ProductViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
 
-    private val _productIdToEdit = MutableStateFlow<Number?>(null)
-    val productToEdit: StateFlow<Products?> = combine(_productIdToEdit, _productsState) { id, productsState ->
-        if (id == null) null
-        else {
-            (productsState as? ProductResult.Success)?.data?.find { it.id.toLong() == id.toLong() }
-        }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
-
-    fun setProductId(id: Number) {
-        _productIdToEdit.value = id
-    }
-
-    fun clearProductIdToEdit() {
-        _productIdToEdit.value = null
-    }
-
-    fun searchProducts(query: String) {
-        _searchQuery.value = query
-        viewModelScope.launch {
-            _productsState.value = ProductResult.Loading
-            try {
-                val response = apiService.searchproducts(query)
-                val products = response.data ?: emptyList()
-                _productsState.value = ProductResult.Success(products)
-            } catch (e: Exception) {
-                _productsState.value = ProductResult.Error(e.localizedMessage ?: "Unknown error")
-            }
-        }
-    }
-
-
-    fun createProduct(request: CreateProductRequest) {
-        viewModelScope.launch {
-            _productsState.value = ProductResult.Loading
-            try {
-                val createdProduct = apiService.createProduct(request)
-                _productsState.value = ProductResult.Success(listOf(createdProduct))
-                getAllProducts()
-            } catch (e: Exception) {
-                _productsState.value = ProductResult.Error(e.localizedMessage ?: "Unknown error")
-            }
-        }
-    }
-
     fun getAllProducts() {
         if (userId == null) {
             _productsState.value = ProductResult.Error("Pengguna tidak diautentikasi. Tidak dapat memuat produk.")
@@ -83,39 +36,62 @@ class ProductViewModel @Inject constructor(
         viewModelScope.launch {
             _productsState.value = ProductResult.Loading
             try {
-                val response = apiService.getAllProducts()
+                val response = repo.getAllProducts()
                 val products = response.data
-                val filteredProducts = products.filter { it.userId.toInt() == userId }
+                val filterProducts = products.filter { it.userId.toInt() == userId }
 
-                _productsState.value = ProductResult.Success(filteredProducts)
+                _productsState.value = ProductResult.Success(filterProducts)
             } catch (e: Exception) {
-                _productsState.value = ProductResult.Error(e.localizedMessage ?: "Unknown error")
+                _productsState.value = ProductResult.Error(e.localizedMessage ?: "Gagal mendapatkan data produk")
             }
         }
     }
 
-    fun updateProduct(productId: Number, request: UpdateProductRequest) {
+    fun searchproducts(query: String) {
+        _searchQuery.value = query
         viewModelScope.launch {
             _productsState.value = ProductResult.Loading
             try {
-                val updatedProduct = apiService.updateProduct(productId, request)
-                _productsState.value = ProductResult.Success(listOf(updatedProduct))
-                getAllProducts()
+                val response = repo.searchproducts(query)
+                val products = response.data ?: emptyList()
+                _productsState.value = ProductResult.Success(products)
             } catch (e: Exception) {
-                _productsState.value = ProductResult.Error(e.localizedMessage ?: "Unknown error")
+                _productsState.value = ProductResult.Error("Pencarian gagal: ${e.message}")
             }
         }
     }
 
-    fun deleteProduct(productId: Number) {
+    fun createProduct(nama: String, price: BigDecimal) {
         viewModelScope.launch {
-            _productsState.value = ProductResult.Loading
             try {
-                apiService.deleteProduct(productId)
-                // Setelah delete, refresh seluruh produk
+                val request = CreateProductRequest(nama, price)
+                repo.createProduct(request)
                 getAllProducts()
             } catch (e: Exception) {
-                _productsState.value = ProductResult.Error(e.localizedMessage ?: "Unknown error")
+                _productsState.value = ProductResult.Error("Gagal menambahkan produk: ${e.message}")
+            }
+        }
+    }
+
+    fun updateProduct(id: Number, nama: String?, price: BigDecimal?) {
+        viewModelScope.launch {
+            try {
+                val request = UpdateProductRequest(nama, price)
+                repo.updateProduct(id, request)
+                getAllProducts()
+            } catch (e: Exception) {
+                _productsState.value = ProductResult.Error("Gagal memperbarui produk: ${e.message}")
+            }
+        }
+    }
+
+    fun deleteProduct(id: Number) {
+        viewModelScope.launch {
+            try {
+                repo.deleteProduct(id)
+                getAllProducts()
+            } catch (e: Exception) {
+                _productsState.value = ProductResult.Error("Gagal menghapus produk: ${e.message}")
             }
         }
     }

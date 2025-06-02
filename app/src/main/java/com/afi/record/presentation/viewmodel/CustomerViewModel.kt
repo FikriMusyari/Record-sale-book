@@ -3,9 +3,9 @@ package com.afi.record.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.afi.record.domain.models.CreateCustomersRequest
-import com.afi.record.domain.models.Customers
 import com.afi.record.domain.models.UpdateCustomersRequest
 import com.afi.record.domain.repository.CustomerRepo
+import com.afi.record.domain.useCase.CustomerResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,33 +15,47 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CustomerViewModel @Inject constructor(
-    private val repo: CustomerRepo
+    private val repo: CustomerRepo,
+    tokenManager: TokenManager
 ) : ViewModel() {
 
-    private val _customers = MutableStateFlow<List<Customers>>(emptyList())
-    val customers: StateFlow<List<Customers>> = _customers
+    private val userId: Int? = tokenManager.getUserId()
 
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage
+    private val _customers = MutableStateFlow<CustomerResult?>(null)
+    val customers: StateFlow<CustomerResult?> = _customers
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery
 
     fun getAllCustomers() {
+        if (userId == null) {
+            _customers.value = CustomerResult.Error("Pengguna tidak diautentikasi. Tidak dapat memuat pelanggan.")
+            return
+        }
         viewModelScope.launch {
+            _customers.value = CustomerResult.Loading
             try {
-                _customers.value = repo.getAllCustomers()
-                _errorMessage.value = null
+                val response = repo.getAllCustomers()
+                val customers = response.data
+                val filteredCustomers = customers.filter { it.userId.toInt() == userId }
+
+                _customers.value = CustomerResult.Success(filteredCustomers)
             } catch (e: Exception) {
-                _errorMessage.value = "Gagal mengambil data pelanggan: ${e.message}"
+                _customers.value = CustomerResult.Error(e.localizedMessage ?: "Gagal mendapatkan data pelanggan")
             }
         }
     }
 
     fun searchCustomers(query: String) {
+        _searchQuery.value = query
         viewModelScope.launch {
+            _customers.value = CustomerResult.Loading
             try {
-                _customers.value = repo.searchcustomers(query)
-                _errorMessage.value = null
+                val response = repo.searchcustomers(query)
+                val customers = response.data ?: emptyList()
+                _customers.value = CustomerResult.Success(customers)
             } catch (e: Exception) {
-                _errorMessage.value = "Pencarian gagal: ${e.message}"
+                _customers.value = CustomerResult.Error("Pencarian gagal: ${e.message}")
             }
         }
     }
@@ -51,10 +65,9 @@ class CustomerViewModel @Inject constructor(
             try {
                 val request = CreateCustomersRequest(nama, balance)
                 repo.createCustomer(request)
-                _errorMessage.value = null
                 getAllCustomers()
             } catch (e: Exception) {
-                _errorMessage.value = "Gagal menambahkan pelanggan: ${e.message}"
+                _customers.value = CustomerResult.Error("Gagal menambahkan pelanggan: ${e.message}")
             }
         }
     }
@@ -64,10 +77,9 @@ class CustomerViewModel @Inject constructor(
             try {
                 val request = UpdateCustomersRequest(nama, balance)
                 repo.updateCustomer(id, request)
-                _errorMessage.value = null
                 getAllCustomers()
             } catch (e: Exception) {
-                _errorMessage.value = "Gagal memperbarui pelanggan: ${e.message}"
+                _customers.value = CustomerResult.Error("Gagal memperbarui pelanggan: ${e.message}")
             }
         }
     }
@@ -76,16 +88,10 @@ class CustomerViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 repo.deleteCustomer(id)
-                _errorMessage.value = null
                 getAllCustomers()
             } catch (e: Exception) {
-                _errorMessage.value = "Gagal menghapus pelanggan: ${e.message}"
+                _customers.value = CustomerResult.Error("Gagal menghapus pelanggan: ${e.message}")
             }
         }
-    }
-
-    // Optional: untuk reset pesan error dari UI setelah ditampilkan
-    fun clearError() {
-        _errorMessage.value = null
     }
 }

@@ -1,7 +1,9 @@
 package com.afi.record.di
 
-import com.afi.record.domain.repository.CustomerRepo
 import com.afi.record.data.repositoryImpl.CustomerRepoImpl
+import com.afi.record.data.repositoryImpl.ProductRepoImpl
+import com.afi.record.domain.repository.CustomerRepo
+import com.afi.record.domain.repository.ProductRepo
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -17,4 +19,10 @@ abstract class RepositoryModule {
     abstract fun bindCustomerRepo(
         repoImpl: CustomerRepoImpl
     ): CustomerRepo
+
+    @Binds
+    @Singleton
+    abstract fun bindProductRepo(
+        repoImpl: ProductRepoImpl
+    ): ProductRepo
 }

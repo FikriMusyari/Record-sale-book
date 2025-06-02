@@ -3,7 +3,8 @@ package com.afi.record.data.remotes
 import com.afi.record.domain.models.CreateCustomersRequest
 import com.afi.record.domain.models.CreateProductRequest
 import com.afi.record.domain.models.CreateQueueRequest
-import com.afi.record.domain.models.Customers
+import com.afi.record.domain.models.CustomersResponse
+import com.afi.record.domain.models.CustomersSearchResponse
 import com.afi.record.domain.models.DataUserResponse
 import com.afi.record.domain.models.LoginRequest
 import com.afi.record.domain.models.ProductResponse
@@ -67,10 +68,10 @@ interface ApiService {
     suspend fun updateCustomers(@Path("customerId") customerId: Number, @Body request: UpdateCustomersRequest)
 
     @GET("api/customers")
-    suspend fun getAllCustomers(): List<Customers>
+    suspend fun getAllCustomers(): CustomersResponse
 
     @GET("api/customers/search")
-    suspend fun searchcustomers(@Query("nama") query: String): List<Customers>
+    suspend fun searchcustomers(@Query("nama") query: String): CustomersSearchResponse
 
     @DELETE("api/customers/{customerId}")
     suspend fun deleteCustomer(@Path("customerId") customerId: Number)

@@ -1,8 +1,10 @@
 package com.afi.record.presentation.screen.customers
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,20 +13,27 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,11 +42,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight.Companion.Bold
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.afi.record.domain.models.Customers
+import com.afi.record.domain.useCase.CustomerResult
 import com.afi.record.presentation.viewmodel.CustomerViewModel
 import java.math.BigDecimal
 
@@ -47,33 +60,69 @@ fun CustomerScreen(
     viewModel: CustomerViewModel
 ) {
     val customers by viewModel.customers.collectAsStateWithLifecycle()
-    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
 
     var showCreateNew by remember { mutableStateOf(false) }
     var createName by remember { mutableStateOf("") }
     var createBalance by remember { mutableStateOf("") }
-
-    var showErrorDialog by remember { mutableStateOf(false) }
     var errorText by remember { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
 
-    // Load data when first composed
+
     LaunchedEffect(Unit) {
         viewModel.getAllCustomers()
     }
 
-    // Show error dialog if errorMessage updated
-    LaunchedEffect(errorMessage) {
-        if (!errorMessage.isNullOrEmpty()) {
-            errorText = errorMessage ?: ""
-            showErrorDialog = true
-            viewModel.clearError()
-        }
-    }
-
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Customers", fontWeight = Bold) }
+            TopAppBar(
+                title = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Customers",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { newQuery ->
+                                viewModel.searchCustomers(newQuery)
+                            },
+                            placeholder = { Text("Search customer...") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            leadingIcon = {
+                                Icon(Icons.Filled.Search, contentDescription = "Search Icon")
+                            },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { viewModel.searchCustomers("") }) {
+                                        Icon(Icons.Filled.Clear, contentDescription = "Clear Search")
+                                    }
+                                }
+                            },
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                unfocusedIndicatorColor = Color.Gray,
+                                cursorColor = MaterialTheme.colorScheme.primary
+                            ),
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                )
             )
         },
         floatingActionButton = {
@@ -88,38 +137,73 @@ fun CustomerScreen(
 
         Box(modifier = Modifier
             .fillMaxSize()
-            .padding(padding)) {
+            .padding(padding)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = { focusManager.clearFocus() })
+            }
+        ){
 
-            if (customers.isEmpty()) {
-                // No customers message
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("No customers added", style = MaterialTheme.typography.bodyLarge)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Add a customer to keep track of clients",
-                        style = MaterialTheme.typography.bodyMedium)
+            when (val state = customers) {
+                is CustomerResult.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Loading customers...", style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
                 }
-            } else {
-                // List of customers
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(customers, key = { it.id }) { customer ->
-                        CustomerListItem(
-                            customer = customer,
-                            onDelete = { viewModel.deleteCustomer(customer.id) },
-                            onUpdate = { id, newName, newBalance ->
-                                viewModel.updateCustomer(id, newName, newBalance)
+
+                is CustomerResult.Error -> {
+                    errorText = "Gagal Mendapatkan data pelanggan"
+                }
+
+                is CustomerResult.Success -> {
+                    val customers = state.data
+                    if (customers.isEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = if (searchQuery.isEmpty()) "No customers added" else "No customers found",
+                                style = MaterialTheme.typography.headlineSmall,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            Text(
+                                text = if (searchQuery.isEmpty()) "Add a customer to get started." else "Try different keywords or clear the search.",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(customers.size, key = { customers[it].id.toString() }) { index ->
+                                val customer = customers[index]
+                                CustomerListItem(
+                                    customer = customer,
+                                    onDelete = { viewModel.deleteCustomer(customer.id) },
+                                    onUpdate = { id, newName, newBalance ->
+                                        viewModel.updateCustomer(id, newName, newBalance)
+                                    }
+                                )
                             }
-                        )
-                        HorizontalDivider()
+                        }
+                    }
+                }
+
+                null -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Welcome! Add or search for customers.", style = MaterialTheme.typography.bodyLarge)
                     }
                 }
             }
         }
+
+
 
         // Create New Customer Dialog
         if (showCreateNew) {
@@ -169,34 +253,10 @@ fun CustomerScreen(
                                     createBalance = ""
                                 } else {
                                     errorText = "Please enter valid name and balance"
-                                    showErrorDialog = true
                                 }
                             }) {
                                 Text("Create")
                             }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Error dialog
-        if (showErrorDialog) {
-            Dialog(onDismissRequest = { showErrorDialog = false }) {
-                Surface(
-                    shape = MaterialTheme.shapes.medium,
-                    modifier = Modifier.width(280.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("Error", style = MaterialTheme.typography.titleLarge)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(errorText)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        TextButton(onClick = { showErrorDialog = false }) {
-                            Text("OK")
                         }
                     }
                 }
@@ -215,60 +275,71 @@ fun CustomerListItem(
     var editName by remember { mutableStateOf(customer.nama) }
     var editBalance by remember { mutableStateOf(customer.balance.toPlainString()) }
 
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .padding(16.dp)) {
-        if (editMode) {
-            OutlinedTextField(
-                value = editName,
-                onValueChange = { editName = it },
-                label = { Text("Name") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = editBalance,
-                onValueChange = { input ->
-                    if (input.matches(Regex("""^\d*\.?\d*$"""))) {
-                        editBalance = input
-                    }
-                },
-                label = { Text("Balance") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                TextButton(onClick = { editMode = false }) {
-                    Text("Cancel")
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                TextButton(onClick = {
-                    val balanceDecimal = editBalance.toBigDecimalOrNull()
-                    if (editName.isNotBlank() && balanceDecimal != null) {
-                        onUpdate(customer.id, editName.trim(), balanceDecimal)
-                        editMode = false
-                    }
-                }) {
-                    Text("Save")
-                }
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(customer.nama, style = MaterialTheme.typography.titleMedium)
-                    Text("Balance: ${customer.balance}", style = MaterialTheme.typography.bodyMedium)
-                }
-                Row {
-                    TextButton(onClick = { editMode = true }) {
-                        Text("Edit")
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            if (editMode) {
+                OutlinedTextField(
+                    value = editName,
+                    onValueChange = { editName = it },
+                    label = { Text("Nama") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = editBalance,
+                    onValueChange = { input ->
+                        if (input.matches(Regex("""^\d*\.?\d*$"""))) {
+                            editBalance = input
+                        }
+                    },
+                    label = { Text("Balance") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = { editMode = false }) {
+                        Text("Cancel")
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    TextButton(onClick = { onDelete(customer.id) }) {
-                        Text("Delete")
+                    TextButton(onClick = {
+                        val balanceDecimal = editBalance.toBigDecimalOrNull()
+                        if (editName.isNotBlank() && balanceDecimal != null) {
+                            onUpdate(customer.id, editName.trim(), balanceDecimal)
+                            editMode = false
+                        }
+                    }) {
+                        Text("Save")
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(customer.nama, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Balance: ${customer.balance}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    Row {
+                        TextButton(onClick = { editMode = true }) {
+                            Text("Edit")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(onClick = { onDelete(customer.id) }) {
+                            Text("Delete")
+                        }
                     }
                 }
             }

@@ -164,8 +164,6 @@ fun QueueScreen(navController: NavController) {
                         showCreateNew = false
                         when (selectedCreateOption) {
                             "Queue" -> navController.navigate(Screen.AddQueue.route)
-                            "Customer" -> navController.navigate(Screen.AddCustomer.route)
-                            "Product" -> navController.navigate(Screen.AddProduct.route)
                         }
                     }
                 )

@@ -18,3 +18,11 @@ data class UpdateCustomersRequest(
     val nama: String?,
     val balance: BigDecimal?,
 )
+
+data class CustomersResponse(
+    val data: List<Customers>
+)
+
+data class CustomersSearchResponse(
+    val data: List<Customers> ? = null
+)

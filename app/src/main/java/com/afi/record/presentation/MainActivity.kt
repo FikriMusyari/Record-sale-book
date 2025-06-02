@@ -19,11 +19,8 @@ import com.afi.record.presentation.components.BottomNavigationBar
 import com.afi.record.presentation.screen.DashboardScreen
 import com.afi.record.presentation.screen.SignInScreen
 import com.afi.record.presentation.screen.SignUpScreen
-import com.afi.record.presentation.screen.customers.AddCustomerScreen
 import com.afi.record.presentation.screen.customers.CustomerScreen
 import com.afi.record.presentation.screen.customers.SelectCustomerScreen
-import com.afi.record.presentation.screen.products.AddProductScreen
-import com.afi.record.presentation.screen.products.EditProductScreen
 import com.afi.record.presentation.screen.products.ProductScreen
 import com.afi.record.presentation.screen.products.SelectProductScreen
 import com.afi.record.presentation.screen.queue.AddQueueScreen
@@ -103,22 +100,11 @@ fun NavGraphBuilder.mainNavGraph(navController: NavController) {
     }
     composable(Screen.Product.route) {
         val viewModel: ProductViewModel = hiltViewModel()
-        ProductScreen(viewModel, navController)
-    }
-    composable(Screen.EditProduct.route) {
-        val viewModel: ProductViewModel = hiltViewModel()
-        EditProductScreen(viewModel, navController)
+        ProductScreen(viewModel)
     }
 }
 
 fun NavGraphBuilder.addNavGraph(navController: NavHostController) {
-    composable(Screen.AddCustomer.route) {
-        AddCustomerScreen()
-    }
-    composable(Screen.AddProduct.route) {
-        val viewModel: ProductViewModel = hiltViewModel()
-        AddProductScreen(viewModel, navController)
-    }
     composable(Screen.AddQueue.route) {
         AddQueueScreen(navController)
     }

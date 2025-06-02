@@ -1,8 +1,6 @@
 package com.afi.record.presentation.screen.products
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,18 +11,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,16 +24,16 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,33 +42,32 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
 import com.afi.record.domain.models.Products
 import com.afi.record.domain.useCase.ProductResult
-import com.afi.record.presentation.Screen
-import com.afi.record.presentation.screen.queue.CreateNewDialog
 import com.afi.record.presentation.viewmodel.ProductViewModel
+import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProductScreen(viewModel: ProductViewModel, navController: NavController) {
-    var showCreateNew by remember { mutableStateOf(false) }
-    val productsUiState by viewModel.productsState.collectAsStateWithLifecycle()
+fun ProductScreen(
+    viewModel: ProductViewModel
+) {
+    val products by viewModel.productsState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
 
-    val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var showBottomSheet by remember { mutableStateOf(false) }
-    var selectedProductForAction by remember { mutableStateOf<Products?>(null) }
-
-    var selectedCreateOption by remember { mutableStateOf("Product") }
+    var showCreateNew by remember { mutableStateOf(false) }
+    var createName by remember { mutableStateOf("") }
+    var createPrice by remember { mutableStateOf("") }
+    var errorText by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
+
 
     LaunchedEffect(Unit) {
         viewModel.getAllProducts()
@@ -91,7 +82,7 @@ fun ProductScreen(viewModel: ProductViewModel, navController: NavController) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Products",
+                            text = "Customers",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -100,9 +91,9 @@ fun ProductScreen(viewModel: ProductViewModel, navController: NavController) {
                         TextField(
                             value = searchQuery,
                             onValueChange = { newQuery ->
-                                viewModel.searchProducts(newQuery)
+                                viewModel.searchproducts(newQuery)
                             },
-                            placeholder = { Text("Search products...") },
+                            placeholder = { Text("Search customer...") },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
                             leadingIcon = {
@@ -110,7 +101,7 @@ fun ProductScreen(viewModel: ProductViewModel, navController: NavController) {
                             },
                             trailingIcon = {
                                 if (searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { viewModel.searchProducts("") }) {
+                                    IconButton(onClick = { viewModel.searchproducts("") }) {
                                         Icon(Icons.Filled.Clear, contentDescription = "Clear Search")
                                     }
                                 }
@@ -137,68 +128,36 @@ fun ProductScreen(viewModel: ProductViewModel, navController: NavController) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showCreateNew = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Product")
+                Icon(Icons.Default.Add, contentDescription = "Add Customer")
             }
         }
-    ) { paddingValues ->
+    ) { padding ->
 
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) {
-                    if (searchQuery.isEmpty()) {
-                        focusManager.clearFocus()
-                    }
-                }
-        ) {
-            if (showCreateNew) {
-                CreateNewDialog(
-                    selectedOption = selectedCreateOption,
-                    onOptionSelected = { selectedCreateOption = it },
-                    onDismiss = { showCreateNew = false },
-                    onCreate = {
-                        showCreateNew = false
-                        when (selectedCreateOption) {
-                            "Queue" -> navController.navigate(Screen.AddQueue.route)
-                            "Customer" -> navController.navigate(Screen.AddCustomer.route)
-                            "Product" -> navController.navigate(Screen.AddProduct.route)
-                        }
-                    }
-                )
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = { focusManager.clearFocus() })
             }
+        ){
 
-            when (val state = productsUiState) {
+            when (val state = products) {
                 is ProductResult.Loading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator()
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("Loading products...", style = MaterialTheme.typography.bodyLarge)
+                            Text("Loading customers...", style = MaterialTheme.typography.bodyLarge)
                         }
                     }
                 }
+
                 is ProductResult.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = state.message,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                            Button(onClick = { viewModel.getAllProducts() }) {
-                                Text("Try Again")
-                            }
-                        }
-                    }
+                    errorText = "Gagal Mendapatkan data produk"
                 }
+
                 is ProductResult.Success -> {
                     val products = state.data
                     if (products.isEmpty()) {
@@ -212,11 +171,10 @@ fun ProductScreen(viewModel: ProductViewModel, navController: NavController) {
                                 style = MaterialTheme.typography.headlineSmall,
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
-                            if (searchQuery.isEmpty()) {
-                                Text("Add a product to manage your inventory", style = MaterialTheme.typography.bodyMedium)
-                            } else {
-                                Text("Try different keywords or clear the search.", style = MaterialTheme.typography.bodyMedium)
-                            }
+                            Text(
+                                text = if (searchQuery.isEmpty()) "Add a customer to get started." else "Try different keywords or clear the search.",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                     } else {
                         LazyColumn(
@@ -224,60 +182,83 @@ fun ProductScreen(viewModel: ProductViewModel, navController: NavController) {
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(products.size, key = { products[it].id.toString() }) { index ->
-                                val product = products[index]
+                                val products = products[index]
                                 ProductListItem(
-                                    product = product,
-                                    onItemClick = {
-                                        println("Product clicked: ${product.nama}")
-
-                                    },
-                                    onMoreActionsClick = { productForAction ->
-                                        selectedProductForAction = productForAction
-                                        showBottomSheet = true
+                                    products = products,
+                                    onDelete = { viewModel.deleteProduct(products.id) },
+                                    onUpdate = { id, newName, newPrice ->
+                                        viewModel.updateProduct(id, newName, newPrice)
                                     }
                                 )
                             }
                         }
                     }
                 }
+
                 null -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Welcome! Add or search for products.", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(16.dp))
+                        Text("Welcome! Add or search for products.", style = MaterialTheme.typography.bodyLarge)
                     }
                 }
             }
         }
 
-        if (showBottomSheet && selectedProductForAction != null) {
-            ModalBottomSheet(
-                onDismissRequest = {
-                    showBottomSheet = false
-                    selectedProductForAction = null
-                },
-                sheetState = bottomSheetState,
-            ) {
-                Column(modifier = Modifier.padding(bottom = 16.dp, start = 16.dp, end = 16.dp)) {
-                    ListItem(
-                        headlineContent = { Text("Edit") },
-                        leadingContent = { Icon(Icons.Filled.Edit, contentDescription = "Edit Product") },
-                        modifier = Modifier.clickable {
-                            val productToEdit = selectedProductForAction!!
-                            viewModel.setProductId(productToEdit.id)
-                            navController.navigate(Screen.EditProduct.route)
-                            showBottomSheet = false
-                            selectedProductForAction = null
+
+
+        // Create New Customer Dialog
+        if (showCreateNew) {
+            Dialog(onDismissRequest = { showCreateNew = false }) {
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.width(320.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Create New Product", style = MaterialTheme.typography.titleLarge)
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = createName,
+                            onValueChange = { createName = it },
+                            label = { Text("Name") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = createPrice,
+                            onValueChange = { input ->
+                                if (input.matches(Regex("""^\d*\.?\d*$"""))) {
+                                    createPrice = input
+                                }
+                            },
+                            label = { Text("Price") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            TextButton(onClick = { showCreateNew = false }) {
+                                Text("Cancel")
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            TextButton(onClick = {
+                                val priceDecimal = createPrice.toBigDecimalOrNull()
+                                if (createName.isNotBlank() && priceDecimal != null) {
+                                    viewModel.createProduct(createName.trim(), priceDecimal)
+                                    showCreateNew = false
+                                    createName = ""
+                                    createPrice = ""
+                                } else {
+                                    errorText = "Please enter valid name and price"
+                                }
+                            }) {
+                                Text("Create")
+                            }
                         }
-                    )
-                    ListItem(
-                        headlineContent = { Text("Delete") },
-                        leadingContent = { Icon(Icons.Filled.Delete, contentDescription = "Delete Product") },
-                        modifier = Modifier.clickable {
-                            val productToDelete = selectedProductForAction!!
-                            viewModel.deleteProduct(productToDelete.id)
-                            showBottomSheet = false
-                            selectedProductForAction = null
-                        }
-                    )
+                    }
                 }
             }
         }
@@ -286,75 +267,81 @@ fun ProductScreen(viewModel: ProductViewModel, navController: NavController) {
 
 @Composable
 fun ProductListItem(
-    product: Products,
-    onItemClick: () -> Unit,
-    onMoreActionsClick: (Products) -> Unit
+    products: Products,
+    onDelete: (Number) -> Unit,
+    onUpdate: (Number, String?, BigDecimal?) -> Unit
 ) {
+    var editMode by remember { mutableStateOf(false) }
+    var editName by remember { mutableStateOf(products.nama) }
+    var editPrice by remember { mutableStateOf(products.price.toString()) }
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onItemClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
-        )
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .padding(horizontal = 12.dp, vertical = 12.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = product.nama.firstOrNull()?.uppercaseChar()?.toString() ?: "P",
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontSize = 18.sp
+            if (editMode) {
+                OutlinedTextField(
+                    value = editName,
+                    onValueChange = { editName = it },
+                    label = { Text("Nama") },
+                    modifier = Modifier.fillMaxWidth()
                 )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = product.nama,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = editPrice,
+                    onValueChange = { input ->
+                        if (input.matches(Regex("""^\d*\.?\d*$"""))) {
+                            editPrice = input
+                        }
+                    },
+                    label = { Text("Price") },
+                    modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = { editMode = false }) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = {
+                        val priceDecimal = editPrice.toBigDecimalOrNull()
+                        if (editName.isNotBlank() && priceDecimal != null) {
+                            onUpdate(products.id, editName.trim(), priceDecimal)
+                            editMode = false
+                        }
+                    }) {
+                        Text("Save")
+                    }
+                }
+            } else {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-
-                    Text(
-                        text = "Price: Rp ${product.price}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    Column {
+                        Text(products.nama, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Price: ${products.price}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    Row {
+                        TextButton(onClick = { editMode = true }) {
+                            Text("Edit")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(onClick = { onDelete(products.id) }) {
+                            Text("Delete")
+                        }
+                    }
                 }
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-
-            IconButton(onClick = { onMoreActionsClick(product) }) {
-                Icon(
-                    Icons.Filled.MoreVert,
-                    contentDescription = "More options",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }

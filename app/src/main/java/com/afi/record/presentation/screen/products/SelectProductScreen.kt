@@ -96,7 +96,6 @@ fun SelectProductScreen(onNewProductClicked: NavHostController) {
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable {
-                        onNewProductClicked.navigate(Screen.AddProduct.route)
                     }
                 )
             }
