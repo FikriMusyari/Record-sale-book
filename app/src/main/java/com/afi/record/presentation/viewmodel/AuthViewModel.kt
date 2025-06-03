@@ -14,7 +14,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authRepo: AuthRepo,
+    private val repo: AuthRepo,
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
@@ -45,7 +45,7 @@ class AuthViewModel @Inject constructor(
             _authResult.value = AuthResult.Loading(randomMessage)
 
             try {
-                val response = authRepo.login(request)
+                val response = repo.login(request)
                 val token = response.data.token
                 tokenManager.saveToken(token)
 
@@ -72,7 +72,7 @@ class AuthViewModel @Inject constructor(
             _authResult.value = AuthResult.Loading(randomMessage)
 
             try {
-                val response = authRepo.register(user)
+                val response = repo.register(user)
                 _authResult.value = AuthResult.Success(
                     data = response,
                     message = "🎊 Akun berhasil dibuat! Selamat datang, ${response.nama}!"
