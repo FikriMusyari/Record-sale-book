@@ -12,16 +12,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,6 +54,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.afi.record.domain.models.UpdateUserRequest
+import com.afi.record.domain.models.UserResponse
+import com.afi.record.domain.useCase.AuthResult
 import com.afi.record.presentation.Screen
 import com.afi.record.presentation.viewmodel.DashboardViewModel
 
@@ -58,6 +63,8 @@ import com.afi.record.presentation.viewmodel.DashboardViewModel
 fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController) {
     val scrollState = rememberScrollState()
     val datauser by viewModel.userData.collectAsStateWithLifecycle()
+    val dashboardResult by viewModel.dashboardResult.collectAsStateWithLifecycle()
+
     var showDateFilter by remember { mutableStateOf(false) }
     var selectedDateRange by remember { mutableStateOf("All time") }
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -67,8 +74,45 @@ fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController)
     var newPassword by remember { mutableStateOf("") }
     var nama by remember { mutableStateOf("") }
 
+    // Fun snackbar state for showing messages
+    var showSnackbar by remember { mutableStateOf(false) }
+    var snackbarMessage by remember { mutableStateOf("") }
+    var snackbarIsError by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         viewModel.loadCurrentUser()
+    }
+
+    // Handle dashboard result state changes
+    LaunchedEffect(dashboardResult) {
+        when (val result = dashboardResult) {
+            is AuthResult.Success<*> -> {
+                snackbarMessage = result.message
+                snackbarIsError = false
+                showSnackbar = true
+
+                // Handle logout success - navigate to login
+                if (result.data == "logout_success") {
+                    navController.navigate(Screen.SignIn.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+
+                // Close update dialog on success
+                if (showChangePasswordDialog && result.data is UserResponse) {
+                    showChangePasswordDialog = false
+                    nama = ""
+                    oldPassword = ""
+                    newPassword = ""
+                }
+            }
+            is AuthResult.Error -> {
+                snackbarMessage = result.message
+                snackbarIsError = true
+                showSnackbar = true
+            }
+            else -> { /* Loading or Idle - handled in UI */ }
+        }
     }
 
     Surface(
@@ -88,12 +132,32 @@ fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController)
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = datauser?.nama ?: "Loading ...",
-                    fontSize = 24.sp,
-                    color = Color.LightGray,
-                    fontWeight = FontWeight.Normal
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = when (val result = dashboardResult) {
+                            is AuthResult.Loading -> "⏳ ${result.message}"
+                            else -> when (val user = datauser) {
+                                null -> "🔄 Memuat profil..."
+                                else -> "👋 Halo, ${user.nama}!"
+                            }
+                        },
+                        fontSize = 20.sp,
+                        color = Color.LightGray,
+                        fontWeight = FontWeight.Normal
+                    )
+
+                    // Show loading indicator when loading
+                    if (dashboardResult is AuthResult.Loading) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Color.LightGray,
+                            strokeWidth = 2.dp
+                        )
+                    }
+                }
 
                 Box {
                     IconButton(onClick = { expanded = true }) {
@@ -105,14 +169,16 @@ fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController)
                         onDismissRequest = { expanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Update Account") },
+                            text = { Text("🔧 Update Account") },
                             onClick = {
                                 expanded = false
                                 showChangePasswordDialog = true
+                                // Pre-fill current user name
+                                nama = datauser?.nama ?: ""
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Logout") },
+                            text = { Text("👋 Logout") },
                             onClick = {
                                 expanded = false
                                 showLogoutDialog = true
@@ -125,12 +191,15 @@ fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController)
             if (showChangePasswordDialog) {
                 AlertDialog(
                     onDismissRequest = {
-                        showChangePasswordDialog = false
-                        nama = ""
-                        oldPassword = ""
-                        newPassword = ""
+                        if (dashboardResult !is AuthResult.Loading) {
+                            showChangePasswordDialog = false
+                            nama = ""
+                            oldPassword = ""
+                            newPassword = ""
+                            viewModel.resetDashboardState()
+                        }
                     },
-                    title = { Text("Update Account") },
+                    title = { Text("🔧 Update Account") },
                     text = {
                         Column {
                             OutlinedTextField(
@@ -159,24 +228,49 @@ fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController)
                         }
                     },
                     confirmButton = {
-                        TextButton(onClick = {
-                            viewModel.updateUserProfile(UpdateUserRequest(nama, oldPassword, newPassword))
-                            showChangePasswordDialog = false
-                            nama = ""
-                            oldPassword = ""
-                            newPassword = ""
-                        }) {
-                            Text("Submit")
+                        TextButton(
+                            onClick = {
+                                if (dashboardResult !is AuthResult.Loading) {
+                                    val request = UpdateUserRequest(
+                                        nama = if (nama.isNotBlank()) nama else null,
+                                        oldPassword = if (oldPassword.isNotBlank()) oldPassword else null,
+                                        newPassword = if (newPassword.isNotBlank()) newPassword else null
+                                    )
+                                    viewModel.updateUserProfile(request)
+                                }
+                            },
+                            enabled = dashboardResult !is AuthResult.Loading
+                        ) {
+                            if (dashboardResult is AuthResult.Loading) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Updating...")
+                                }
+                            } else {
+                                Text("💾 Submit")
+                            }
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = {
-                            showChangePasswordDialog = false
-                            nama = ""
-                            oldPassword = ""
-                            newPassword = ""
-                        }) {
-                            Text("Cancel")
+                        TextButton(
+                            onClick = {
+                                if (dashboardResult !is AuthResult.Loading) {
+                                    showChangePasswordDialog = false
+                                    nama = ""
+                                    oldPassword = ""
+                                    newPassword = ""
+                                    viewModel.resetDashboardState()
+                                }
+                            },
+                            enabled = dashboardResult !is AuthResult.Loading
+                        ) {
+                            Text("❌ Cancel")
                         }
                     }
                 )
@@ -184,23 +278,49 @@ fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController)
 
             if (showLogoutDialog) {
                 AlertDialog(
-                    onDismissRequest = { showLogoutDialog = false },
-                    title = { Text(text = "Logout") },
-                    text = { Text("Are you sure you want to logout?") },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            viewModel.logout()
+                    onDismissRequest = {
+                        if (dashboardResult !is AuthResult.Loading) {
                             showLogoutDialog = false
-                            navController.navigate(Screen.SignIn.route) {
-                                popUpTo(0)
+                        }
+                    },
+                    title = { Text(text = "👋 Logout") },
+                    text = {
+                        when (val result = dashboardResult) {
+                            is AuthResult.Loading -> {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(result.message)
+                                }
                             }
-                        }) {
-                            Text("Yes")
+                            else -> {
+                                Text("🤔 Apakah Anda yakin ingin keluar?")
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                if (dashboardResult !is AuthResult.Loading) {
+                                    viewModel.logout()
+                                    showLogoutDialog = false
+                                }
+                            },
+                            enabled = dashboardResult !is AuthResult.Loading
+                        ) {
+                            Text("✅ Ya, Keluar")
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showLogoutDialog = false }) {
-                            Text("No")
+                        if (dashboardResult !is AuthResult.Loading) {
+                            TextButton(onClick = { showLogoutDialog = false }) {
+                                Text("❌ Batal")
+                            }
                         }
                     }
                 )
@@ -410,7 +530,7 @@ fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController)
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Revenue chart (placeholder)
+                    // Revenue chart
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -480,6 +600,60 @@ fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController)
                 },
                 currentSelection = selectedDateRange
             )
+        }
+
+        // Fun Snackbar for showing messages
+        if (showSnackbar) {
+            LaunchedEffect(showSnackbar) {
+                kotlinx.coroutines.delay(3000) // Show for 3 seconds
+                showSnackbar = false
+                viewModel.clearDashboardError()
+            }
+        }
+    }
+
+    // Snackbar positioned at bottom
+    if (showSnackbar) {
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .align(Alignment.BottomCenter),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (snackbarIsError) Color(0xFFD32F2F) else Color(0xFF388E3C)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = snackbarMessage,
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    IconButton(
+                        onClick = {
+                            showSnackbar = false
+                            viewModel.clearDashboardError()
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
         }
     }
 }

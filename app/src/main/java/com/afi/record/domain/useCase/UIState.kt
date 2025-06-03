@@ -5,9 +5,10 @@ import com.afi.record.domain.models.Products
 
 
 sealed class AuthResult {
-    data class Success<T>(val data: T): AuthResult()
+    data class Success<T>(val data: T, val message: String = "🎉 Berhasil!"): AuthResult()
     data class Error(val message: String): AuthResult()
-    object Loading : AuthResult()
+    data class Loading(val message: String = "⏳ Sedang memproses..."): AuthResult()
+    object Idle : AuthResult()
 }
 
 sealed class ProductResult {

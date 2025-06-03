@@ -59,6 +59,11 @@ fun SignUpScreen( viewModel: AuthViewModel, navController: NavController) {
 
     val isLoading = authResult is AuthResult.Loading
 
+    // Reset state when entering SignUp screen
+    LaunchedEffect(Unit) {
+        viewModel.resetState()
+    }
+
     LaunchedEffect(hasNavigated) {
         if (hasNavigated) {
             navController.navigate(Screen.SignIn.route) {
@@ -198,6 +203,7 @@ fun SignUpScreen( viewModel: AuthViewModel, navController: NavController) {
                     "Sudah punya akun? Masuk sekarang",
                     color = Color.White,
                     modifier = Modifier.clickable {
+                        viewModel.resetState() // Reset state before navigating
                         navController.navigate(Screen.SignIn.route)
                     }
                 )

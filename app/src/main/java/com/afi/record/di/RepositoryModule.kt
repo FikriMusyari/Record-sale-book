@@ -1,7 +1,9 @@
 package com.afi.record.di
 
+import com.afi.record.data.repositoryImpl.AuthRepoImpl
 import com.afi.record.data.repositoryImpl.CustomerRepoImpl
 import com.afi.record.data.repositoryImpl.ProductRepoImpl
+import com.afi.record.domain.repository.AuthRepo
 import com.afi.record.domain.repository.CustomerRepo
 import com.afi.record.domain.repository.ProductRepo
 import dagger.Binds
@@ -13,6 +15,12 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepo(
+        repoImpl: AuthRepoImpl
+    ): AuthRepo
 
     @Binds
     @Singleton
