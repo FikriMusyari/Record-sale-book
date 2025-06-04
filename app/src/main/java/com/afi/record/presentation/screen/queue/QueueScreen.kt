@@ -21,9 +21,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,7 +33,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,24 +48,19 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import com.afi.record.presentation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QueueScreen(navController: NavController) {
-    var showCreateNew by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val sheetState = rememberModalBottomSheetState()
 
-    // State for create new options
-    var selectedCreateOption by remember { mutableStateOf("Customer") }
 
-    // State for filters
     var selectedFilter by remember { mutableStateOf<String?>(null) }
     val filterOptions = listOf("In Queue", "In Process", "Unpaid", "Completed")
 
@@ -136,15 +130,15 @@ fun QueueScreen(navController: NavController) {
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showCreateNew = true },
+                onClick = { navController.navigate(Screen.AddQueue.route) },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
+                Icon(Icons.Default.Add, contentDescription = "Add Queue")
             }
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            Divider()
+            HorizontalDivider()
 
             // Selected filter chip
             selectedFilter?.let { filter ->
@@ -154,22 +148,7 @@ fun QueueScreen(navController: NavController) {
                 )
             }
 
-            // Dialogs
-            if (showCreateNew) {
-                CreateNewDialog(
-                    selectedOption = selectedCreateOption,
-                    onOptionSelected = { selectedCreateOption = it },
-                    onDismiss = { showCreateNew = false },
-                    onCreate = {
-                        showCreateNew = false
-                        when (selectedCreateOption) {
-                            "Queue" -> navController.navigate(Screen.AddQueue.route)
-                        }
-                    }
-                )
-            }
 
-            // Main content
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -185,7 +164,7 @@ fun QueueScreen(navController: NavController) {
         }
     }
 
-    // Filter Bottom Sheet
+
     if (showFilters) {
         ModalBottomSheet(
             onDismissRequest = { showFilters = false },
@@ -256,59 +235,6 @@ fun FilterChip(
                     contentDescription = "Close",
                     modifier = Modifier.size(12.dp)
                 )
-            }
-        }
-    }
-}
-
-@Composable
-fun CreateNewDialog(
-    selectedOption: String,
-    onOptionSelected: (String) -> Unit,
-    onDismiss: () -> Unit,
-    onCreate: () -> Unit
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.width(280.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Create new", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                val options = listOf("Queue", "Customer", "Product")
-                options.forEach { option ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = option == selectedOption,
-                            onClick = { onOptionSelected(option) }
-                        )
-                        Text(
-                            text = option,
-                            modifier = Modifier.padding(start = 8.dp),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    TextButton(onClick = onCreate) {
-                        Text("Create")
-                    }
-                }
             }
         }
     }

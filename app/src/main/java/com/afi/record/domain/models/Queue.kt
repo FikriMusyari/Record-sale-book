@@ -1,5 +1,6 @@
 package com.afi.record.domain.models
 
+import androidx.compose.ui.graphics.Color
 import java.math.BigDecimal
 
 data class OrderItem(
@@ -43,4 +44,17 @@ data class DataItem(
     val user: String? = null,
     val customer: String? = null,
     val status: String? = null
+)
+
+data class SelectedProduct(
+    val product: Products,
+    val quantity: Int,
+    val discount: BigDecimal,
+    val totalPrice: BigDecimal
+)
+
+data class QueueStatus(
+    val id: Int,
+    val name: String,
+    val color: Color
 )
