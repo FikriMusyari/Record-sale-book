@@ -10,9 +10,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,6 +25,8 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,6 +65,7 @@ import com.afi.record.domain.models.SelectedProduct
 import com.afi.record.domain.useCase.AuthResult
 import com.afi.record.presentation.Screen
 import com.afi.record.presentation.viewmodel.QueueViewModel
+import java.math.BigDecimal
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -80,11 +85,7 @@ data class PaymentMethod(
 
 val paymentMethods = listOf(
     PaymentMethod(1, "Cash"),
-    PaymentMethod(2, "Credit Card"),
-    PaymentMethod(3, "Debit Card"),
-    PaymentMethod(4, "Bank Transfer"),
-    PaymentMethod(5, "E-Wallet"),
-    PaymentMethod(6, "QRIS")
+    PaymentMethod(2, "Account Balance")
 )
 
 @Composable
@@ -102,8 +103,8 @@ fun AddQueueScreen(
     viewModel: QueueViewModel = hiltViewModel()
 ) {
 
-    var selectedCustomer by remember { mutableStateOf<Customers?>(null) }
-    var selectedProducts by remember { mutableStateOf<List<SelectedProduct>>(emptyList()) }
+    val selectedCustomer by viewModel.selectedCustomer.collectAsStateWithLifecycle()
+    val selectedProducts by viewModel.selectedProducts.collectAsStateWithLifecycle()
     var selectedStatus by remember { mutableStateOf(statusOptions[0]) }
     var selectedPaymentMethod by remember { mutableStateOf<PaymentMethod?>(null) }
     var note by remember { mutableStateOf("") }
@@ -121,7 +122,6 @@ fun AddQueueScreen(
     val queueResult by viewModel.queue.collectAsStateWithLifecycle()
     val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
 
-
     LaunchedEffect(queueResult) {
         when (val result = queueResult) {
             is AuthResult.Success<*> -> {
@@ -131,6 +131,7 @@ fun AddQueueScreen(
 
                 // Navigate back on successful queue creation
                 if (result.data is QueueResponse) {
+                    viewModel.clearAllSelections()
                     navController.navigateUp()
                 }
             }
@@ -154,7 +155,10 @@ fun AddQueueScreen(
             TopAppBar(
                 title = { Text("Create queue") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
+                    IconButton(onClick = {
+                        viewModel.clearAllSelections()
+                        navController.navigateUp()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -204,8 +208,7 @@ fun AddQueueScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Payment Method Section (only show when status is Completed)
-            if (selectedStatus.id == 4) { // Completed status
+            if (selectedStatus.id == 4) {
                 PaymentMethodSection(
                     selectedPaymentMethod = selectedPaymentMethod,
                     onPaymentMethodSelected = { selectedPaymentMethod = it }
@@ -221,7 +224,7 @@ fun AddQueueScreen(
                     showProductOrderDialog = true
                 },
                 onRemoveProduct = { productToRemove ->
-                    selectedProducts = selectedProducts.filter { it.product.id != productToRemove.product.id }
+                    viewModel.removeSelectedProduct(productToRemove.product.id)
                 },
                 grandTotal = grandTotal,
                 totalDiscount = totalDiscount,
@@ -285,9 +288,9 @@ fun AddQueueScreen(
 
                     val request = CreateQueueRequest(
                         customerId = customer.id,
-                        statusId = selectedStatus.id, // Langsung gunakan ID dari selectedStatus
-                        paymentId = selectedPaymentMethod?.id, // Gunakan ID dari selectedPaymentMethod
-                        note = if (note.isBlank()) null else note, // Allow blank note to be null
+                        statusId = selectedStatus.id,
+                        paymentId = selectedPaymentMethod?.id,
+                        note = if (note.isBlank()) null else note,
                         orders = orders
                     )
 
@@ -494,6 +497,24 @@ fun ProductOrdersSection(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Selected Products List
+        if (selectedProducts.isNotEmpty()) {
+            LazyColumn(
+                modifier = Modifier.heightIn(max = 200.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(selectedProducts.size) { index ->
+                    val selectedProduct = selectedProducts[index]
+                    SelectedProductItem(
+                        selectedProduct = selectedProduct,
+                        onRemove = { onRemoveProduct(selectedProduct) },
+                        formatter = formatter
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         // Grand total price
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -539,6 +560,59 @@ fun ProductOrdersSection(
                 .height(1.dp)
                 .background(Color.LightGray.copy(alpha = 0.3f))
         )
+    }
+}
+
+@Composable
+fun SelectedProductItem(
+    selectedProduct: SelectedProduct,
+    onRemove: () -> Unit,
+    formatter: NumberFormat
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = selectedProduct.product.nama,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Qty: ${selectedProduct.quantity} × ${selectedProduct.product.price}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+                if (selectedProduct.discount > BigDecimal.ZERO) {
+                    Text(
+                        text = "Discount: ${formatter.format(selectedProduct.discount.toDouble())}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Red
+                    )
+                }
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = formatter.format(selectedProduct.totalPrice.toDouble()),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium
+                )
+                TextButton(
+                    onClick = onRemove,
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                ) {
+                    Text("Remove", fontSize = 12.sp)
+                }
+            }
+        }
     }
 }
 

@@ -3,7 +3,10 @@ package com.afi.record.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.afi.record.domain.models.CreateQueueRequest
+import com.afi.record.domain.models.Customers
+import com.afi.record.domain.models.Products
 import com.afi.record.domain.models.QueueResponse
+import com.afi.record.domain.models.SelectedProduct
 import com.afi.record.domain.models.UpdateQueueRequest
 import com.afi.record.domain.repository.QueueRepo
 import com.afi.record.domain.useCase.AuthResult
@@ -11,6 +14,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
 import javax.inject.Inject
 
 @HiltViewModel
@@ -23,6 +27,13 @@ class QueueViewModel @Inject constructor(
 
     private val _queues = MutableStateFlow<List<com.afi.record.domain.models.DataItem>>(emptyList())
     val queues: StateFlow<List<com.afi.record.domain.models.DataItem>> = _queues
+
+    // Selected customer and products for queue creation
+    private val _selectedCustomer = MutableStateFlow<Customers?>(null)
+    val selectedCustomer: StateFlow<Customers?> = _selectedCustomer
+
+    private val _selectedProducts = MutableStateFlow<List<SelectedProduct>>(emptyList())
+    val selectedProducts: StateFlow<List<SelectedProduct>> = _selectedProducts
 
     // Fun loading messages for queue operations
     private val createMessages = listOf(
@@ -52,6 +63,50 @@ class QueueViewModel @Inject constructor(
         "✨ Membersihkan data...",
         "⏳ Hampir selesai..."
     )
+
+    // Functions to manage selected customer and products
+    fun selectCustomer(customer: Customers) {
+        _selectedCustomer.value = customer
+    }
+
+    fun clearSelectedCustomer() {
+        _selectedCustomer.value = null
+    }
+
+    fun addSelectedProduct(product: Products, quantity: Int = 1, discount: BigDecimal = BigDecimal.ZERO) {
+        val price = product.price.toBigDecimalOrNull() ?: BigDecimal.ZERO
+        val totalPrice = price.multiply(BigDecimal(quantity)).subtract(discount)
+
+        val selectedProduct = SelectedProduct(
+            product = product,
+            quantity = quantity,
+            discount = discount,
+            totalPrice = totalPrice
+        )
+
+        val currentProducts = _selectedProducts.value.toMutableList()
+        // Check if product already exists, if so update it
+        val existingIndex = currentProducts.indexOfFirst { it.product.id == product.id }
+        if (existingIndex != -1) {
+            currentProducts[existingIndex] = selectedProduct
+        } else {
+            currentProducts.add(selectedProduct)
+        }
+        _selectedProducts.value = currentProducts
+    }
+
+    fun removeSelectedProduct(productId: Int) {
+        _selectedProducts.value = _selectedProducts.value.filter { it.product.id != productId }
+    }
+
+    fun clearSelectedProducts() {
+        _selectedProducts.value = emptyList()
+    }
+
+    fun clearAllSelections() {
+        _selectedCustomer.value = null
+        _selectedProducts.value = emptyList()
+    }
 
     fun createQueue(request: CreateQueueRequest) {
         viewModelScope.launch {
