@@ -15,9 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -50,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -59,6 +60,7 @@ import androidx.navigation.NavController
 import com.afi.record.domain.models.CreateQueueRequest
 import com.afi.record.domain.models.Customers
 import com.afi.record.domain.models.OrderItem
+import com.afi.record.domain.models.Products
 import com.afi.record.domain.models.QueueResponse
 import com.afi.record.domain.models.QueueStatus
 import com.afi.record.domain.models.SelectedProduct
@@ -77,7 +79,7 @@ val statusOptions = listOf(
     QueueStatus(4, "Completed", Color(0xFF4CAF50))
 )
 
-// Payment methods with ID
+
 data class PaymentMethod(
     val id: Int,
     val name: String
@@ -105,6 +107,7 @@ fun AddQueueScreen(
 
     val selectedCustomer by viewModel.selectedCustomer.collectAsStateWithLifecycle()
     val selectedProducts by viewModel.selectedProducts.collectAsStateWithLifecycle()
+    val tempSelectedProduct by viewModel.tempSelectedProduct.collectAsStateWithLifecycle()
     var selectedStatus by remember { mutableStateOf(statusOptions[0]) }
     var selectedPaymentMethod by remember { mutableStateOf<PaymentMethod?>(null) }
     var note by remember { mutableStateOf("") }
@@ -119,6 +122,11 @@ fun AddQueueScreen(
     var snackbarMessage by remember { mutableStateOf("") }
     var snackbarIsError by remember { mutableStateOf(false) }
 
+
+    var dialogSelectedProduct by remember { mutableStateOf<Products?>(null) }
+    var tempQuantity by remember { mutableStateOf("1") }
+    var tempDiscount by remember { mutableStateOf("0") }
+
     val queueResult by viewModel.queue.collectAsStateWithLifecycle()
     val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
 
@@ -129,7 +137,7 @@ fun AddQueueScreen(
                 snackbarIsError = false
                 showSnackbar = true
 
-                // Navigate back on successful queue creation
+
                 if (result.data is QueueResponse) {
                     viewModel.clearAllSelections()
                     navController.navigateUp()
@@ -144,10 +152,17 @@ fun AddQueueScreen(
         }
     }
 
-    // Calculate totals when products change
     LaunchedEffect(selectedProducts) {
         grandTotal = selectedProducts.sumOf { it.totalPrice.toDouble() }
         totalDiscount = selectedProducts.sumOf { it.discount.toDouble() }
+    }
+
+    LaunchedEffect(tempSelectedProduct) {
+        tempSelectedProduct?.let { product ->
+            dialogSelectedProduct = product
+            showProductOrderDialog = true
+            viewModel.clearTempSelectedProduct()
+        }
     }
 
     Scaffold(
@@ -258,11 +273,34 @@ fun AddQueueScreen(
     // Product Order Dialog
     if (showProductOrderDialog) {
         ProductOrderDialog(
+            selectedProduct = dialogSelectedProduct,
+            quantity = tempQuantity,
+            discount = tempDiscount,
+            onQuantityChange = { tempQuantity = it },
+            onDiscountChange = { tempDiscount = it },
             onProductClick = {
-                showProductOrderDialog = false
                 navController.navigate(Screen.SelectProduct.route)
             },
-            onDismiss = { showProductOrderDialog = false }
+            onAddProduct = {
+                dialogSelectedProduct?.let { product ->
+                    val quantity = tempQuantity.toIntOrNull() ?: 1
+                    val discount = tempDiscount.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                    viewModel.addSelectedProduct(product, quantity, discount)
+
+                    // Reset dialog state
+                    dialogSelectedProduct = null
+                    tempQuantity = "1"
+                    tempDiscount = "0"
+                    showProductOrderDialog = false
+                }
+            },
+            onDismiss = {
+                // Reset dialog state
+                dialogSelectedProduct = null
+                tempQuantity = "1"
+                tempDiscount = "0"
+                showProductOrderDialog = false
+            }
         )
     }
 
@@ -649,7 +687,13 @@ fun NoteSection(
 
 @Composable
 fun ProductOrderDialog(
+    selectedProduct: Products?,
+    quantity: String,
+    discount: String,
+    onQuantityChange: (String) -> Unit,
+    onDiscountChange: (String) -> Unit,
     onProductClick: () -> Unit,
+    onAddProduct: () -> Unit,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -683,12 +727,20 @@ fun ProductOrderDialog(
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Select product",
-                            fontSize = 16.sp,
-                            color = Color.Gray,
-                            modifier = Modifier.weight(1f)
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = selectedProduct?.nama ?: "Select product",
+                                fontSize = 16.sp,
+                                color = if (selectedProduct != null) Color.Black else Color.Gray
+                            )
+                            if (selectedProduct != null) {
+                                Text(
+                                    text = "Price: ${selectedProduct.price}",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
                         Icon(
                             imageVector = Icons.Default.ArrowDropDown,
                             contentDescription = "Select",
@@ -705,66 +757,87 @@ fun ProductOrderDialog(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                if (selectedProduct != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                // Quantity field
-                Column {
-                    Text(
-                        text = "Quantity",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
+                    // Quantity field
+                    Column {
+                        Text(
+                            text = "Quantity",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
 
-                    OutlinedTextField(
-                        value = "",
-                        onValueChange = { },
+                        OutlinedTextField(
+                            value = quantity,
+                            onValueChange = onQuantityChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Enter quantity") },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Discount field
+                    Column {
+                        Text(
+                            text = "Discount",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        OutlinedTextField(
+                            value = discount,
+                            onValueChange = onDiscountChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Enter discount") },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Total price calculation
+                    val price = selectedProduct.price.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                    val qty = quantity.toIntOrNull() ?: 1
+                    val disc = discount.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                    val totalPrice = price.multiply(BigDecimal(qty)).subtract(disc)
+
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Enter quantity") },
-                        enabled = false
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Total price",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(totalPrice.toDouble()),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                } else {
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Info text
+                    Text(
+                        text = "Select a product to continue with quantity and discount settings.",
+                        fontSize = 14.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(bottom = 16.dp)
                     )
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Discount field
-                Column {
-                    Text(
-                        text = "Discount",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = "",
-                        onValueChange = { },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Enter discount") },
-                        enabled = false
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Total price
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Total price",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "$0",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
 
                 // Buttons
                 Row(
@@ -774,12 +847,14 @@ fun ProductOrderDialog(
                     TextButton(onClick = onDismiss) {
                         Text("Cancel", color = Color(0xFF007AFF))
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    TextButton(
-                        onClick = { /* Handle Add */ },
-                        enabled = false
-                    ) {
-                        Text("Add", color = Color.Gray)
+                    if (selectedProduct != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(
+                            onClick = onAddProduct,
+                            enabled = quantity.toIntOrNull() != null && quantity.toIntOrNull()!! > 0
+                        ) {
+                            Text("Add", color = Color(0xFF007AFF))
+                        }
                     }
                 }
             }

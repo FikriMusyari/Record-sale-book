@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.afi.record.domain.models.CreateQueueRequest
 import com.afi.record.domain.models.Customers
+import com.afi.record.domain.models.DataItem
 import com.afi.record.domain.models.Products
-import com.afi.record.domain.models.QueueResponse
 import com.afi.record.domain.models.SelectedProduct
 import com.afi.record.domain.models.UpdateQueueRequest
 import com.afi.record.domain.repository.QueueRepo
@@ -25,8 +25,8 @@ class QueueViewModel @Inject constructor(
     private val _queue = MutableStateFlow<AuthResult>(AuthResult.Idle)
     val queue: StateFlow<AuthResult> = _queue
 
-    private val _queues = MutableStateFlow<List<com.afi.record.domain.models.DataItem>>(emptyList())
-    val queues: StateFlow<List<com.afi.record.domain.models.DataItem>> = _queues
+    private val _queues = MutableStateFlow<List<DataItem>>(emptyList())
+    val queues: StateFlow<List<DataItem>> = _queues
 
     // Selected customer and products for queue creation
     private val _selectedCustomer = MutableStateFlow<Customers?>(null)
@@ -34,6 +34,10 @@ class QueueViewModel @Inject constructor(
 
     private val _selectedProducts = MutableStateFlow<List<SelectedProduct>>(emptyList())
     val selectedProducts: StateFlow<List<SelectedProduct>> = _selectedProducts
+
+    // Temporary product selection for dialog
+    private val _tempSelectedProduct = MutableStateFlow<Products?>(null)
+    val tempSelectedProduct: StateFlow<Products?> = _tempSelectedProduct
 
     // Fun loading messages for queue operations
     private val createMessages = listOf(
@@ -106,6 +110,15 @@ class QueueViewModel @Inject constructor(
     fun clearAllSelections() {
         _selectedCustomer.value = null
         _selectedProducts.value = emptyList()
+    }
+
+    // Functions for temporary product selection
+    fun setTempSelectedProduct(product: Products) {
+        _tempSelectedProduct.value = product
+    }
+
+    fun clearTempSelectedProduct() {
+        _tempSelectedProduct.value = null
     }
 
     fun createQueue(request: CreateQueueRequest) {

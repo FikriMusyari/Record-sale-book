@@ -140,7 +140,7 @@ fun SelectProductScreen(
                                 SelectableProductItem(
                                     product = product,
                                     onProductSelected = { selectedProduct ->
-                                        queueViewModel.addSelectedProduct(selectedProduct)
+                                        queueViewModel.setTempSelectedProduct(selectedProduct)
                                         navController.navigateUp()
                                     }
                                 )
