@@ -17,9 +17,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Refresh
@@ -30,6 +29,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
@@ -71,8 +71,6 @@ fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController)
     val dashboardResult by viewModel.dashboardResult.collectAsStateWithLifecycle()
     val dashboardMetrics by viewModel.dashboardMetrics.collectAsStateWithLifecycle()
 
-    // Loading state for refresh functionality
-    val isRefreshing = dashboardResult is AuthResult.Loading
 
     var showDateFilter by remember { mutableStateOf(false) }
     var selectedDateRange by remember { mutableStateOf("Semua Waktu") }
@@ -368,7 +366,7 @@ fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController)
                             }
 
                             Icon(
-                                imageVector = Icons.Default.ArrowForward,
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = "Lihat antrian",
                                 tint = Color(0xFFEF4444),
                                 modifier = Modifier.size(20.dp)

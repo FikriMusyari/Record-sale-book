@@ -3,10 +3,9 @@ package com.afi.record.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.afi.record.domain.models.Customers
+import com.afi.record.domain.models.DashboardMetrics
 import com.afi.record.domain.models.DataItem
 import com.afi.record.domain.models.Products
-import com.afi.record.domain.models.ProductResponse
-import com.afi.record.domain.models.CustomersResponse
 import com.afi.record.domain.models.UpdateUserRequest
 import com.afi.record.domain.models.UserResponse
 import com.afi.record.domain.repository.AuthRepo
@@ -259,11 +258,3 @@ class DashboardViewModel @Inject constructor(
         )
     }
 }
-
-data class DashboardMetrics(
-    val totalQueues: Int = 0,
-    val uncompletedQueues: Int = 0,
-    val activeCustomers: Int = 0,
-    val productsSold: Int = 0,
-    val revenue: BigDecimal = BigDecimal.ZERO
-)

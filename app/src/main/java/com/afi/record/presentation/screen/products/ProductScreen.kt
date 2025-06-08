@@ -1,6 +1,6 @@
 package com.afi.record.presentation.screen.products
 
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,12 +11,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -26,33 +33,36 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.afi.record.domain.models.Products
 import com.afi.record.domain.useCase.ProductResult
 import com.afi.record.presentation.viewmodel.ProductViewModel
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
+import java.text.NumberFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,164 +75,280 @@ fun ProductScreen(
     var showCreateNew by remember { mutableStateOf(false) }
     var createName by remember { mutableStateOf("") }
     var createPrice by remember { mutableStateOf("") }
-    var errorText by remember { mutableStateOf("") }
-    val focusManager = LocalFocusManager.current
+    var showSnackbar by remember { mutableStateOf(false) }
+    var snackbarMessage by remember { mutableStateOf("") }
+    var snackbarIsError by remember { mutableStateOf(false) }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.getAllProducts()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
+    // Show snackbar when needed
+    LaunchedEffect(showSnackbar) {
+        if (showSnackbar) {
+            scope.launch {
+                snackbarHostState.showSnackbar(snackbarMessage)
+                showSnackbar = false
+            }
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color(0xFF0F172A)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Modern Top Bar
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color(0xFF1E293B),
+                    shadowElevation = 4.dp
+                ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Customers",
-                            style = MaterialTheme.typography.titleLarge,
+                            text = "🛍️ Produk",
+                            fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = Color.White,
+                            modifier = Modifier.weight(1f)
                         )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        TextField(
-                            value = searchQuery,
-                            onValueChange = { newQuery ->
-                                viewModel.searchproducts(newQuery)
-                            },
-                            placeholder = { Text("Search customer...") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            leadingIcon = {
-                                Icon(Icons.Filled.Search, contentDescription = "Search Icon")
-                            },
-                            trailingIcon = {
-                                if (searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { viewModel.searchproducts("") }) {
-                                        Icon(Icons.Filled.Clear, contentDescription = "Clear Search")
-                                    }
-                                }
-                            },
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                disabledContainerColor = Color.Transparent,
-                                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                                unfocusedIndicatorColor = Color.Gray,
-                                cursorColor = MaterialTheme.colorScheme.primary
-                            ),
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                )
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showCreateNew = true },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Customer")
-            }
-        }
-    ) { padding ->
 
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
-            .pointerInput(Unit) {
-                detectTapGestures(onTap = { focusManager.clearFocus() })
-            }
-        ){
-
-            when (val state = products) {
-                is ProductResult.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator()
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("Loading customers...", style = MaterialTheme.typography.bodyLarge)
-                        }
-                    }
-                }
-
-                is ProductResult.Error -> {
-                    errorText = "Gagal Mendapatkan data produk"
-                }
-
-                is ProductResult.Success -> {
-                    val products = state.data
-                    if (products.isEmpty()) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                        // Add Product Button
+                        Surface(
+                            modifier = Modifier.clickable { showCreateNew = true },
+                            color = Color(0xFF3B82F6),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text(
-                                text = if (searchQuery.isEmpty()) "No products added" else "No products found",
-                                style = MaterialTheme.typography.headlineSmall,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-                            Text(
-                                text = if (searchQuery.isEmpty()) "Add a customer to get started." else "Try different keywords or clear the search.",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(products.size, key = { products[it].id.toString() }) { index ->
-                                val products = products[index]
-                                ProductListItem(
-                                    products = products,
-                                    onDelete = { viewModel.deleteProduct(products.id) },
-                                    onUpdate = { id, newName, newPrice ->
-                                        viewModel.updateProduct(id, newName, newPrice)
-                                    }
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Tambah Produk",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Tambah",
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
                                 )
                             }
                         }
                     }
                 }
 
-                null -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Welcome! Add or search for products.", style = MaterialTheme.typography.bodyLarge)
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Search Bar
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { query ->
+                        if (query.isNotBlank()) {
+                            viewModel.searchproducts(query)
+                        } else {
+                            viewModel.getAllProducts()
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    placeholder = {
+                        Text(
+                            "Cari produk...",
+                            color = Color(0xFF9CA3AF)
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = "Cari",
+                            tint = Color(0xFF9CA3AF)
+                        )
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color(0xFF374151),
+                        cursorColor = Color(0xFF3B82F6)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Product List
+                when (val state = products) {
+                    is ProductResult.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(
+                                    color = Color(0xFF3B82F6),
+                                    modifier = Modifier.size(48.dp),
+                                    strokeWidth = 4.dp
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    "Memuat data produk...",
+                                    color = Color.White,
+                                    fontSize = 16.sp
+                                )
+                            }
+                        }
+                    }
+
+                    is ProductResult.Error -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    "❌ Gagal memuat data",
+                                    color = Color(0xFFEF4444),
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    state.message,
+                                    color = Color(0xFF9CA3AF),
+                                    fontSize = 14.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+
+                    is ProductResult.Success -> {
+                        val productList = state.data
+                        if (productList.isEmpty()) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        "🛍️ Produk tidak ditemukan",
+                                        color = Color.White,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        if (searchQuery.isEmpty()) "Tambah produk untuk memulai" else "Coba kata kunci lain atau tambah produk baru",
+                                        color = Color(0xFF9CA3AF),
+                                        fontSize = 14.sp,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(productList.size, key = { productList[it].id.toString() }) { index ->
+                                    val product = productList[index]
+                                    ModernProductListItem(
+                                        product = product,
+                                        onDelete = {
+                                            viewModel.deleteProduct(product.id)
+                                            snackbarMessage = "🗑️ Produk berhasil dihapus"
+                                            snackbarIsError = false
+                                            showSnackbar = true
+                                        },
+                                        onUpdate = { id, newName, newPrice ->
+                                            viewModel.updateProduct(id, newName, newPrice)
+                                            snackbarMessage = "✅ Produk berhasil diperbarui"
+                                            snackbarIsError = false
+                                            showSnackbar = true
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "Selamat datang! Tambah atau cari produk.",
+                                color = Color(0xFF9CA3AF),
+                                fontSize = 16.sp
+                            )
+                        }
                     }
                 }
             }
         }
 
+        // Snackbar
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) { snackbarData ->
+            Snackbar(
+                snackbarData = snackbarData,
+                containerColor = if (snackbarIsError) Color(0xFFEF4444) else Color(0xFF10B981),
+                contentColor = Color.White,
+                shape = RoundedCornerShape(12.dp)
+            )
+        }
 
 
-        // Create New Customer Dialog
+
+        // Create New Product Dialog
         if (showCreateNew) {
             Dialog(onDismissRequest = { showCreateNew = false }) {
                 Surface(
-                    shape = MaterialTheme.shapes.medium,
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFF1F2937),
                     modifier = Modifier.width(320.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Create New Product", style = MaterialTheme.typography.titleLarge)
-                        Spacer(modifier = Modifier.height(16.dp))
+                    Column(modifier = Modifier.padding(24.dp)) {
+                        Text(
+                            "🛍️ Tambah Produk Baru",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
 
                         OutlinedTextField(
                             value = createName,
                             onValueChange = { createName = it },
-                            label = { Text("Name") },
-                            modifier = Modifier.fillMaxWidth()
+                            label = { Text("Nama Produk", color = Color(0xFF9CA3AF)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color(0xFF3B82F6),
+                                unfocusedBorderColor = Color(0xFF374151),
+                                cursorColor = Color(0xFF3B82F6)
+                            )
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         OutlinedTextField(
                             value = createPrice,
                             onValueChange = { input ->
@@ -230,32 +356,62 @@ fun ProductScreen(
                                     createPrice = input
                                 }
                             },
-                            label = { Text("Price") },
-                            modifier = Modifier.fillMaxWidth()
+                            label = { Text("Harga", color = Color(0xFF9CA3AF)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color(0xFF3B82F6),
+                                unfocusedBorderColor = Color(0xFF374151),
+                                cursorColor = Color(0xFF3B82F6)
+                            )
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            TextButton(onClick = { showCreateNew = false }) {
-                                Text("Cancel")
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            TextButton(onClick = {
-                                val priceDecimal = createPrice.toBigDecimalOrNull()
-                                if (createName.isNotBlank() && priceDecimal != null) {
-                                    viewModel.createProduct(createName.trim(), priceDecimal)
+                            Button(
+                                onClick = {
                                     showCreateNew = false
                                     createName = ""
                                     createPrice = ""
-                                } else {
-                                    errorText = "Please enter valid name and price"
-                                }
-                            }) {
-                                Text("Create")
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF374151)
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Batal", color = Color.White)
+                            }
+                            Button(
+                                onClick = {
+                                    val priceDecimal = createPrice.toBigDecimalOrNull()
+                                    if (createName.isNotBlank() && priceDecimal != null) {
+                                        viewModel.createProduct(createName.trim(), priceDecimal)
+                                        showCreateNew = false
+                                        createName = ""
+                                        createPrice = ""
+                                        snackbarMessage = "🎉 Produk berhasil ditambahkan!"
+                                        snackbarIsError = false
+                                        showSnackbar = true
+                                    } else {
+                                        snackbarMessage = "❌ Mohon isi nama dan harga yang valid"
+                                        snackbarIsError = true
+                                        showSnackbar = true
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF3B82F6)
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Simpan", color = Color.White)
                             }
                         }
                     }
@@ -266,33 +422,46 @@ fun ProductScreen(
 }
 
 @Composable
-fun ProductListItem(
-    products: Products,
+fun ModernProductListItem(
+    product: Products,
     onDelete: (Number) -> Unit,
     onUpdate: (Number, String?, BigDecimal?) -> Unit
 ) {
     var editMode by remember { mutableStateOf(false) }
-    var editName by remember { mutableStateOf(products.nama) }
-    var editPrice by remember { mutableStateOf(products.price.toString()) }
+    var editName by remember { mutableStateOf(product.nama) }
+    var editPrice by remember { mutableStateOf(product.price.toPlainString()) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF1F2937)
+        ),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(20.dp)
         ) {
             if (editMode) {
+                // Edit Mode
                 OutlinedTextField(
                     value = editName,
                     onValueChange = { editName = it },
-                    label = { Text("Nama") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Nama Produk", color = Color(0xFF9CA3AF)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color(0xFF374151),
+                        cursorColor = Color(0xFF3B82F6)
+                    )
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
                     value = editPrice,
                     onValueChange = { input ->
@@ -300,49 +469,179 @@ fun ProductListItem(
                             editPrice = input
                         }
                     },
-                    label = { Text("Price") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Harga", color = Color(0xFF9CA3AF)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF3B82F6),
+                        unfocusedBorderColor = Color(0xFF374151),
+                        cursorColor = Color(0xFF3B82F6)
+                    )
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                    TextButton(onClick = { editMode = false }) {
-                        Text("Cancel")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    TextButton(onClick = {
-                        val priceDecimal = editPrice.toBigDecimalOrNull()
-                        if (editName.isNotBlank() && priceDecimal != null) {
-                            onUpdate(products.id, editName.trim(), priceDecimal)
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = {
                             editMode = false
-                        }
-                    }) {
-                        Text("Save")
+                            editName = product.nama
+                            editPrice = product.price.toPlainString()
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF374151)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Batal", color = Color.White)
+                    }
+                    Button(
+                        onClick = {
+                            val priceDecimal = editPrice.toBigDecimalOrNull()
+                            if (editName.isNotBlank() && priceDecimal != null) {
+                                onUpdate(product.id, editName.trim(), priceDecimal)
+                                editMode = false
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF10B981)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Simpan", color = Color.White)
                     }
                 }
             } else {
+                // Display Mode
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column {
-                        Text(products.nama, style = MaterialTheme.typography.titleMedium)
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "Price: ${products.price}",
-                            style = MaterialTheme.typography.bodyMedium
+                            text = product.nama,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
+                        Spacer(modifier = Modifier.height(7.dp))
+                        Text(
+                            text = "Harga: ${NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(product.price.toDouble())}",
+                            fontSize = 14.sp,
+                            color = Color(0xFF10B981),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
                     }
-                    Row {
-                        TextButton(onClick = { editMode = true }) {
-                            Text("Edit")
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Edit Button
+                        Surface(
+                            modifier = Modifier.clickable { editMode = true },
+                            color = Color(0xFF3B82F6),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Edit",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        TextButton(onClick = { onDelete(products.id) }) {
-                            Text("Delete")
+
+                        // Delete Button
+                        Surface(
+                            modifier = Modifier.clickable { showDeleteDialog = true },
+                            color = Color(0xFFEF4444),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Hapus",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Hapus",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    // Delete Confirmation Dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            containerColor = Color(0xFF1F2937),
+            title = {
+                Text(
+                    "🗑️ Hapus Produk",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    "Apakah Anda yakin ingin menghapus produk \"${product.nama}\"?",
+                    color = Color(0xFF9CA3AF)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDelete(product.id)
+                        showDeleteDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFEF4444)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Hapus", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showDeleteDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF374151)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Batal", color = Color.White)
+                }
+            },
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 }
