@@ -23,7 +23,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -32,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -39,7 +45,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -90,13 +95,7 @@ val paymentMethods = listOf(
     PaymentMethod(2, "Account Balance")
 )
 
-@Composable
-fun AppTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = darkColorScheme(),
-        content = content
-    )
-}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,8 +110,8 @@ fun AddQueueScreen(
     var selectedStatus by remember { mutableStateOf(statusOptions[0]) }
     var selectedPaymentMethod by remember { mutableStateOf<PaymentMethod?>(null) }
     var note by remember { mutableStateOf("") }
-    var grandTotal by remember { mutableStateOf(0.0) }
-    var totalDiscount by remember { mutableStateOf(0.0) }
+    var grandTotal by remember { mutableStateOf(BigDecimal.ZERO) }
+    var totalDiscount by remember { mutableStateOf(BigDecimal.ZERO) }
 
 
     var showStatusOptions by remember { mutableStateOf(false) }
@@ -153,8 +152,8 @@ fun AddQueueScreen(
     }
 
     LaunchedEffect(selectedProducts) {
-        grandTotal = selectedProducts.sumOf { it.totalPrice.toDouble() }
-        totalDiscount = selectedProducts.sumOf { it.discount.toDouble() }
+        grandTotal = selectedProducts.fold(BigDecimal.ZERO) { acc, item -> acc.add(item.totalPrice) }
+        totalDiscount = selectedProducts.fold(BigDecimal.ZERO) { acc, item -> acc.add(item.discount) }
     }
 
     LaunchedEffect(tempSelectedProduct) {
@@ -357,42 +356,69 @@ fun CustomerSelectionSection(
     selectedCustomer: Customers?,
     onCustomerClick: () -> Unit
 ) {
-    Column {
-        Text(
-            text = "Customer",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color.Black,
-            modifier = Modifier.padding(bottom = 8.dp)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selectedCustomer != null)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+            else MaterialTheme.colorScheme.surface
         )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onCustomerClick() }
-                .padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = selectedCustomer?.nama ?: "Select customer",
-                fontSize = 16.sp,
-                color = if (selectedCustomer != null) Color.Black else Color.Gray,
-                modifier = Modifier.weight(1f)
-            )
-            Icon(
-                imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = "Select",
-                tint = Color.Gray
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Customer",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Customer",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onCustomerClick() }
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = selectedCustomer?.nama ?: "Pilih customer",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (selectedCustomer != null)
+                            MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                    if (selectedCustomer != null) {
+                        Text(
+                            text = "Saldo: ${NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(selectedCustomer.balance.toDouble())}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = "Select",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
         }
-
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(Color.LightGray.copy(alpha = 0.3f))
-        )
     }
 }
 
@@ -401,42 +427,70 @@ fun StatusSelectionSection(
     selectedStatus: QueueStatus,
     onStatusClick: () -> Unit
 ) {
-    Column {
-        Text(
-            text = "Status",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color.Black,
-            modifier = Modifier.padding(bottom = 8.dp)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
         )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onStatusClick() }
-                .padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = selectedStatus.name,
-                fontSize = 16.sp,
-                color = Color.Black,
-                modifier = Modifier.weight(1f)
-            )
-            Icon(
-                imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = "Select",
-                tint = Color.Gray
-            )
-        }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "Status",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Status Antrian",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
 
-        // Divider
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(Color.LightGray.copy(alpha = 0.3f))
-        )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onStatusClick() }
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .background(
+                                color = selectedStatus.color,
+                                shape = RoundedCornerShape(6.dp)
+                            )
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = selectedStatus.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = "Select",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+        }
     }
 }
 
@@ -501,37 +555,60 @@ fun ProductOrdersSection(
     selectedProducts: List<SelectedProduct>,
     onAddProductClick: () -> Unit,
     onRemoveProduct: (SelectedProduct) -> Unit,
-    grandTotal: Double,
-    totalDiscount: Double,
+    grandTotal: BigDecimal,
+    totalDiscount: BigDecimal,
     formatter: NumberFormat
 ) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = "Product orders",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Black
-            )
-            TextButton(
-                onClick = onAddProductClick,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = Color(0xFF007AFF)
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add",
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Add")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ShoppingCart,
+                        contentDescription = "Products",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Produk Pesanan",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Button(
+                    onClick = onAddProductClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add",
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Tambah", fontSize = 14.sp)
+                }
             }
-        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -553,51 +630,58 @@ fun ProductOrdersSection(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Grand total price
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Grand total price",
-                fontSize = 16.sp,
-                color = Color.Black
-            )
-            Text(
-                text = formatter.format(grandTotal),
-                fontSize = 16.sp,
-                color = Color.Black
-            )
+            // Summary section
+            if (selectedProducts.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Total Discount",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                text = formatter.format(totalDiscount.toDouble()),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Red,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Grand Total",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = formatter.format(grandTotal.toDouble()),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Total discount
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Total discount",
-                fontSize = 16.sp,
-                color = Color.Black
-            )
-            Text(
-                text = formatter.format(totalDiscount),
-                fontSize = 16.sp,
-                color = Color.Black
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Divider
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(Color.LightGray.copy(alpha = 0.3f))
-        )
     }
 }
 
@@ -659,29 +743,57 @@ fun NoteSection(
     note: String,
     onNoteChange: (String) -> Unit
 ) {
-    Column {
-        Text(
-            text = "Note",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color.Black,
-            modifier = Modifier.padding(bottom = 8.dp)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
         )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Note",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Catatan (Opsional)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
 
-        OutlinedTextField(
-            value = note,
-            onValueChange = onNoteChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp),
-            placeholder = { Text("Add note...") },
-            shape = RoundedCornerShape(8.dp),
-            maxLines = 5,
-            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.LightGray,
-                unfocusedBorderColor = Color.LightGray
+            OutlinedTextField(
+                value = note,
+                onValueChange = onNoteChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp),
+                placeholder = {
+                    Text(
+                        "Tambahkan catatan untuk pesanan ini...",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                shape = RoundedCornerShape(8.dp),
+                maxLines = 4,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                )
             )
-        )
+        }
     }
 }
 
@@ -771,12 +883,26 @@ fun ProductOrderDialog(
 
                         OutlinedTextField(
                             value = quantity,
-                            onValueChange = onQuantityChange,
+                            onValueChange = { newValue ->
+                                // Only allow positive integers
+                                if (newValue.isEmpty() || (newValue.toIntOrNull() != null && newValue.toInt() > 0)) {
+                                    onQuantityChange(newValue)
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             placeholder = { Text("Enter quantity") },
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Number
-                            )
+                            ),
+                            isError = quantity.isNotEmpty() && (quantity.toIntOrNull() == null || quantity.toInt() <= 0),
+                            supportingText = {
+                                if (quantity.isNotEmpty() && (quantity.toIntOrNull() == null || quantity.toInt() <= 0)) {
+                                    Text(
+                                        text = "Quantity harus berupa angka positif",
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
                         )
                     }
 
@@ -793,19 +919,36 @@ fun ProductOrderDialog(
 
                         OutlinedTextField(
                             value = discount,
-                            onValueChange = onDiscountChange,
+                            onValueChange = { newValue ->
+                                // Only allow valid decimal numbers (including 0)
+                                if (newValue.isEmpty() || newValue.toBigDecimalOrNull() != null) {
+                                    val decimalValue = newValue.toBigDecimalOrNull()
+                                    if (decimalValue == null || decimalValue >= BigDecimal.ZERO) {
+                                        onDiscountChange(newValue)
+                                    }
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("Enter discount") },
+                            placeholder = { Text("Enter discount (optional)") },
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Decimal
-                            )
+                            ),
+                            isError = discount.isNotEmpty() && (discount.toBigDecimalOrNull() == null || discount.toBigDecimalOrNull()!! < BigDecimal.ZERO),
+                            supportingText = {
+                                if (discount.isNotEmpty() && (discount.toBigDecimalOrNull() == null || discount.toBigDecimalOrNull()!! < BigDecimal.ZERO)) {
+                                    Text(
+                                        text = "Discount harus berupa angka positif atau nol",
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
                         )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // Total price calculation
-                    val price = selectedProduct.price.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                    val price = selectedProduct.price
                     val qty = quantity.toIntOrNull() ?: 1
                     val disc = discount.toBigDecimalOrNull() ?: BigDecimal.ZERO
                     val totalPrice = price.multiply(BigDecimal(qty)).subtract(disc)
@@ -941,7 +1084,7 @@ fun ConfirmationDialog(
     selectedProducts: List<SelectedProduct>,
     selectedStatus: QueueStatus,
     note: String,
-    grandTotal: Double,
+    grandTotal: BigDecimal,
     formatter: NumberFormat,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
@@ -976,7 +1119,7 @@ fun ConfirmationDialog(
                 }
                 Text("🆔 Status ID: ${selectedStatus.id}")
                 Text("🛍️ Produk: ${selectedProducts.size} item(s)")
-                Text("💰 Total: ${formatter.format(grandTotal)}")
+                Text("💰 Total: ${formatter.format(grandTotal.toDouble())}")
 
                 if (note.isNotBlank()) {
                     Text("📝 Note: $note")

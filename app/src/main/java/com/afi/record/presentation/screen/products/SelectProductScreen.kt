@@ -29,6 +29,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,9 +48,13 @@ import com.afi.record.presentation.viewmodel.QueueViewModel
 @Composable
 fun SelectProductScreen(
     navController: NavController,
-    viewModel: ProductViewModel = hiltViewModel(),
-    queueViewModel: QueueViewModel = hiltViewModel()
+    viewModel: ProductViewModel = hiltViewModel()
 ) {
+    // Get shared QueueViewModel from parent navigation scope
+    val parentEntry = remember(navController) {
+        navController.getBackStackEntry("addqueue")
+    }
+    val queueViewModel: QueueViewModel = hiltViewModel(parentEntry)
     val products by viewModel.productsState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
 

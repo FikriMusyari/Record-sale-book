@@ -49,12 +49,18 @@ class ProductViewModel @Inject constructor(
 
     fun searchproducts(query: String) {
         _searchQuery.value = query
+        if (userId == null) {
+            _productsState.value = ProductResult.Error("Pengguna tidak diautentikasi. Tidak dapat mencari produk.")
+            return
+        }
         viewModelScope.launch {
             _productsState.value = ProductResult.Loading
             try {
                 val response = repo.searchproducts(query)
                 val products = response.data ?: emptyList()
-                _productsState.value = ProductResult.Success(products)
+                // Filter berdasarkan userId seperti di getAllProducts
+                val filteredProducts = products.filter { it.userId.toInt() == userId }
+                _productsState.value = ProductResult.Success(filteredProducts)
             } catch (e: Exception) {
                 _productsState.value = ProductResult.Error("Pencarian gagal: ${e.message}")
             }
