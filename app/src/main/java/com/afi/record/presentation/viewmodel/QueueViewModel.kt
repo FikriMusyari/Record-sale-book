@@ -10,6 +10,7 @@ import com.afi.record.domain.models.SelectedProduct
 import com.afi.record.domain.models.UpdateQueueRequest
 import com.afi.record.domain.repository.QueueRepo
 import com.afi.record.domain.useCase.AuthResult
+import com.afi.record.domain.useCase.ErrorHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +20,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class QueueViewModel @Inject constructor(
-    private val repo: QueueRepo
+    private val repo: QueueRepo,
+    private val customerRepo: com.afi.record.domain.repository.CustomerRepo
 ) : ViewModel() {
 
     private val _queue = MutableStateFlow<AuthResult>(AuthResult.Idle)
@@ -78,7 +80,7 @@ class QueueViewModel @Inject constructor(
     }
 
     fun addSelectedProduct(product: Products, quantity: Int = 1, discount: BigDecimal = BigDecimal.ZERO) {
-        val price = product.price.toBigDecimalOrNull() ?: BigDecimal.ZERO
+        val price = product.price
         val totalPrice = price.multiply(BigDecimal(quantity)).subtract(discount)
 
         val selectedProduct = SelectedProduct(
@@ -135,13 +137,7 @@ class QueueViewModel @Inject constructor(
 
                 getAllQueues()
             } catch (e: Exception) {
-                val errorMessage = when {
-                    e.message?.contains("400") == true -> "📝 Data tidak valid, periksa kembali"
-                    e.message?.contains("401") == true -> "🔐 Sesi telah berakhir, silakan login kembali"
-                    e.message?.contains("network") == true -> "🌐 Koneksi internet bermasalah"
-                    else -> "😵 Gagal membuat antrian: ${e.localizedMessage ?: "Unknown error"}"
-                }
-                _queue.value = AuthResult.Error(errorMessage)
+                _queue.value = AuthResult.Error(ErrorHandler.getQueueErrorMessage(e, "create"))
             }
         }
     }
@@ -159,13 +155,7 @@ class QueueViewModel @Inject constructor(
                     message = "✅ Daftar antrian berhasil dimuat!"
                 )
             } catch (e: Exception) {
-                val errorMessage = when {
-                    e.message?.contains("401") == true -> "🔐 Sesi telah berakhir, silakan login kembali"
-                    e.message?.contains("network") == true -> "🌐 Koneksi internet bermasalah"
-                    e.message?.contains("timeout") == true -> "⏰ Koneksi timeout, coba lagi"
-                    else -> "😵 Gagal memuat antrian: ${e.localizedMessage ?: "Unknown error"}"
-                }
-                _queue.value = AuthResult.Error(errorMessage)
+                _queue.value = AuthResult.Error(ErrorHandler.getQueueErrorMessage(e, "fetch"))
             }
         }
     }
@@ -176,7 +166,18 @@ class QueueViewModel @Inject constructor(
             _queue.value = AuthResult.Loading(randomMessage)
 
             try {
+                // Get current queue data before update to check for status change
+                val currentQueues = _queues.value
+                val currentQueue = currentQueues.find { it.id == queueId }
+
                 repo.updateQueue(queueId, request)
+
+                // Check if status is being changed to "Completed" (statusId = 4)
+                if (request.statusId == 4 && currentQueue != null && currentQueue.status != "Completed") {
+                    // Handle customer balance deduction for completed queue
+                    handleQueueCompletion(currentQueue)
+                }
+
                 _queue.value = AuthResult.Success(
                     data = "update_success",
                     message = "🎉 Antrian berhasil diperbarui!"
@@ -184,15 +185,44 @@ class QueueViewModel @Inject constructor(
                 // Refresh queue list after update
                 getAllQueues()
             } catch (e: Exception) {
-                val errorMessage = when {
-                    e.message?.contains("400") == true -> "📝 Data tidak valid, periksa kembali"
-                    e.message?.contains("401") == true -> "🔐 Sesi telah berakhir, silakan login kembali"
-                    e.message?.contains("404") == true -> "❓ Antrian tidak ditemukan"
-                    e.message?.contains("network") == true -> "🌐 Koneksi internet bermasalah"
-                    else -> "😵 Gagal memperbarui antrian: ${e.localizedMessage ?: "Unknown error"}"
-                }
-                _queue.value = AuthResult.Error(errorMessage)
+                _queue.value = AuthResult.Error(ErrorHandler.getQueueErrorMessage(e, "update"))
             }
+        }
+    }
+
+    private suspend fun handleQueueCompletion(queue: DataItem) {
+        try {
+            // Calculate total amount from queue
+            val totalAmount = queue.grandTotal ?: 0
+
+            if (totalAmount > 0) {
+                // Find customer by name (since we don't have direct customer ID in DataItem)
+                val customerName = queue.customer
+                if (!customerName.isNullOrBlank()) {
+                    // Get customer data to find the customer ID and current balance
+                    val customersResponse = customerRepo.getAllCustomers()
+                    val customer = customersResponse.data.find { it.nama == customerName }
+
+                    if (customer != null) {
+                        // Calculate new balance (deduct the total amount)
+                        val newBalance = customer.balance - BigDecimal(totalAmount)
+
+                        // Update customer balance
+                        val updateRequest = com.afi.record.domain.models.UpdateCustomersRequest(
+                            nama = null, // Don't change name
+                            balance = newBalance
+                        )
+
+                        customerRepo.updateCustomer(customer.id, updateRequest)
+
+                        // Log the balance deduction for debugging
+                        println("🔄 Balance deducted for customer ${customer.nama}: ${customer.balance} -> $newBalance (Amount: $totalAmount)")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Log error but don't fail the queue update
+            println("❌ Error updating customer balance: ${e.message}")
         }
     }
 
@@ -210,13 +240,7 @@ class QueueViewModel @Inject constructor(
                 // Refresh queue list after deletion
                 getAllQueues()
             } catch (e: Exception) {
-                val errorMessage = when {
-                    e.message?.contains("401") == true -> "🔐 Sesi telah berakhir, silakan login kembali"
-                    e.message?.contains("404") == true -> "❓ Antrian tidak ditemukan"
-                    e.message?.contains("network") == true -> "🌐 Koneksi internet bermasalah"
-                    else -> "😵 Gagal menghapus antrian: ${e.localizedMessage ?: "Unknown error"}"
-                }
-                _queue.value = AuthResult.Error(errorMessage)
+                _queue.value = AuthResult.Error(ErrorHandler.getQueueErrorMessage(e, "delete"))
             }
         }
     }

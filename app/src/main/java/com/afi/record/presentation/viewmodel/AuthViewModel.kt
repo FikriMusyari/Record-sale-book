@@ -6,6 +6,7 @@ import com.afi.record.domain.models.LoginRequest
 import com.afi.record.domain.models.Users
 import com.afi.record.domain.repository.AuthRepo
 import com.afi.record.domain.useCase.AuthResult
+import com.afi.record.domain.useCase.ErrorHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,6 +41,24 @@ class AuthViewModel @Inject constructor(
     )
 
     fun login(request: LoginRequest) {
+        // Input validation
+        if (request.email.isBlank()) {
+            _authResult.value = AuthResult.Error(ErrorHandler.Validation.EMPTY_EMAIL)
+            return
+        }
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(request.email).matches()) {
+            _authResult.value = AuthResult.Error(ErrorHandler.Validation.INVALID_EMAIL)
+            return
+        }
+        if (request.password.isBlank()) {
+            _authResult.value = AuthResult.Error(ErrorHandler.Validation.EMPTY_PASSWORD)
+            return
+        }
+        if (request.password.length < 6) {
+            _authResult.value = AuthResult.Error(ErrorHandler.Validation.SHORT_PASSWORD)
+            return
+        }
+
         viewModelScope.launch {
             val randomMessage = loginMessages.random()
             _authResult.value = AuthResult.Loading(randomMessage)
@@ -55,18 +74,34 @@ class AuthViewModel @Inject constructor(
                 )
                 _hasNavigated.value = true
             } catch (e: Exception) {
-                val errorMessage = when {
-                    e.message?.contains("401") == true -> "❌ Email atau password salah"
-                    e.message?.contains("network") == true -> "🌐 Koneksi internet bermasalah"
-                    e.message?.contains("timeout") == true -> "⏰ Koneksi timeout, coba lagi"
-                    else -> "😵 Terjadi kesalahan: ${e.localizedMessage ?: "Unknown error"}"
-                }
-                _authResult.value = AuthResult.Error(errorMessage)
+                _authResult.value = AuthResult.Error(ErrorHandler.getAuthErrorMessage(e))
             }
         }
     }
 
     fun register(user: Users) {
+        // Input validation
+        if (user.nama.isBlank()) {
+            _authResult.value = AuthResult.Error("👤 Nama tidak boleh kosong")
+            return
+        }
+        if (user.email.isBlank()) {
+            _authResult.value = AuthResult.Error("📧 Email tidak boleh kosong")
+            return
+        }
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(user.email).matches()) {
+            _authResult.value = AuthResult.Error("📧 Format email tidak valid")
+            return
+        }
+        if (user.password.isBlank()) {
+            _authResult.value = AuthResult.Error("🔒 Password tidak boleh kosong")
+            return
+        }
+        if (user.password.length < 6) {
+            _authResult.value = AuthResult.Error("🔒 Password minimal 6 karakter")
+            return
+        }
+
         viewModelScope.launch {
             val randomMessage = registerMessages.random()
             _authResult.value = AuthResult.Loading(randomMessage)

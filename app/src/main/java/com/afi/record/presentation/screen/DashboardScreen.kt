@@ -17,9 +17,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -27,7 +30,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
@@ -58,15 +60,22 @@ import com.afi.record.domain.models.UserResponse
 import com.afi.record.domain.useCase.AuthResult
 import com.afi.record.presentation.Screen
 import com.afi.record.presentation.viewmodel.DashboardViewModel
+import java.text.NumberFormat
+import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController) {
     val scrollState = rememberScrollState()
     val datauser by viewModel.userData.collectAsStateWithLifecycle()
     val dashboardResult by viewModel.dashboardResult.collectAsStateWithLifecycle()
+    val dashboardMetrics by viewModel.dashboardMetrics.collectAsStateWithLifecycle()
+
+    // Loading state for refresh functionality
+    val isRefreshing = dashboardResult is AuthResult.Loading
 
     var showDateFilter by remember { mutableStateOf(false) }
-    var selectedDateRange by remember { mutableStateOf("All time") }
+    var selectedDateRange by remember { mutableStateOf("Semua Waktu") }
     var showLogoutDialog by remember { mutableStateOf(false) }
     var expanded by remember { mutableStateOf(false) }
     var showChangePasswordDialog by remember { mutableStateOf(false) }
@@ -81,7 +90,17 @@ fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController)
 
     LaunchedEffect(Unit) {
         viewModel.loadCurrentUser()
+        viewModel.loadDashboardData()
     }
+
+    // Refresh data when returning to dashboard
+    LaunchedEffect(navController.currentBackStackEntry) {
+        if (navController.currentBackStackEntry?.destination?.route == "dashboard") {
+            viewModel.loadDashboardData()
+        }
+    }
+
+    // Auto-refresh handling - removed pull-to-refresh for compatibility
 
     // Handle dashboard result state changes
     LaunchedEffect(dashboardResult) {
@@ -115,479 +134,534 @@ fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController)
         }
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Color(0xFF1E293B) // Dark background color
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color(0xFF0F172A) // Modern dark background
         ) {
-            // Top Bar
-            Row(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                // Modern Top Bar
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color(0xFF1E293B),
+                    shadowElevation = 4.dp
                 ) {
-                    Text(
-                        text = when (val result = dashboardResult) {
-                            is AuthResult.Loading -> "⏳ ${result.message}"
-                            else -> when (val user = datauser) {
-                                null -> "🔄 Memuat profil..."
-                                else -> "👋 Halo, ${user.nama}!"
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Dashboard",
+                                fontSize = 24.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = when (val result = dashboardResult) {
+                                    is AuthResult.Loading -> "⏳ ${result.message}"
+                                    else -> when (val user = datauser) {
+                                        null -> "Memuat profil..."
+                                        else -> "Halo, ${user.nama}!"
+                                    }
+                                },
+                                fontSize = 14.sp,
+                                color = Color(0xFF9CA3AF),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Show loading indicator when loading
+                            if (dashboardResult is AuthResult.Loading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color(0xFF3B82F6),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                            }
+
+                            // Refresh button
+                            Surface(
+                                modifier = Modifier.clickable {
+                                    viewModel.loadDashboardData()
+                                },
+                                color = Color(0xFF374151),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "Refresh",
+                                    tint = Color.White,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            // Settings button
+                            Box {
+                                Surface(
+                                    modifier = Modifier.clickable { expanded = true },
+                                    color = Color(0xFF374151),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = "Settings",
+                                        tint = Color.White,
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                }
+
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("🔧 Update Account") },
+                                        onClick = {
+                                            expanded = false
+                                            showChangePasswordDialog = true
+                                            // Pre-fill current user name
+                                            nama = datauser?.nama ?: ""
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("👋 Logout") },
+                                        onClick = {
+                                            expanded = false
+                                            showLogoutDialog = true
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Revenue Overview - Modern Minimal Design
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF1F2937)
+                    ),
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Total Pendapatan",
+                                fontSize = 16.sp,
+                                color = Color(0xFF9CA3AF),
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(dashboardMetrics.revenue.toDouble()),
+                                fontSize = 28.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        // Date Filter Button - Modern Style
+                        Surface(
+                            modifier = Modifier.clickable { showDateFilter = true },
+                            color = Color(0xFF374151),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = selectedDateRange,
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Show date filter",
+                                    tint = Color(0xFF9CA3AF),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Urgent Alert - Only show when needed
+                if (dashboardMetrics.uncompletedQueues > 0) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .clickable { navController.navigate(Screen.Queue.route) },
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFFEF2F2)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(
+                                        Color(0xFFEF4444),
+                                        RoundedCornerShape(20.dp)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "⚠️",
+                                    fontSize = 18.sp
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Perhatian Diperlukan!",
+                                    color = Color(0xFF991B1B),
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "${dashboardMetrics.uncompletedQueues} antrian belum selesai",
+                                    color = Color(0xFF7F1D1D),
+                                    fontSize = 14.sp
+                                )
+                            }
+
+                            Icon(
+                                imageVector = Icons.Default.ArrowForward,
+                                contentDescription = "Lihat antrian",
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+
+                // Business Metrics - Clean Grid
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF1F2937)
+                    ),
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+                        Text(
+                            text = "Ringkasan Bisnis",
+                            fontSize = 20.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            MetricCard(
+                                modifier = Modifier.weight(1f),
+                                icon = "📋",
+                                title = "Total Antrian",
+                                value = dashboardMetrics.totalQueues.toString(),
+                                color = Color(0xFF3B82F6)
+                            )
+                            MetricCard(
+                                modifier = Modifier.weight(1f),
+                                icon = "⏳",
+                                title = "Belum Selesai",
+                                value = dashboardMetrics.uncompletedQueues.toString(),
+                                color = Color(0xFFEF4444)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            MetricCard(
+                                modifier = Modifier.weight(1f),
+                                icon = "👥",
+                                title = "Customer Aktif",
+                                value = dashboardMetrics.activeCustomers.toString(),
+                                color = Color(0xFF10B981)
+                            )
+                            MetricCard(
+                                modifier = Modifier.weight(1f),
+                                icon = "📦",
+                                title = "Produk Terjual",
+                                value = dashboardMetrics.productsSold.toString(),
+                                color = Color(0xFFF59E0B)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Quick Actions - Modern Design
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF1F2937)
+                    ),
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+                        Text(
+                            text = "Tindakan Cepat",
+                            fontSize = 20.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            QuickActionButton(
+                                modifier = Modifier.weight(1f),
+                                icon = "➕",
+                                title = "Antrian Baru",
+                                subtitle = "Buat pesanan",
+                                backgroundColor = Color(0xFF10B981),
+                                onClick = { navController.navigate(Screen.AddQueue.route) }
+                            )
+
+                            QuickActionButton(
+                                modifier = Modifier.weight(1f),
+                                icon = "📋",
+                                title = "Lihat Antrian",
+                                subtitle = "Kelola status",
+                                backgroundColor = Color(0xFF8B5CF6),
+                                onClick = { navController.navigate(Screen.Queue.route) }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            QuickActionButton(
+                                modifier = Modifier.weight(1f),
+                                icon = "👥",
+                                title = "Customer",
+                                subtitle = "Kelola data",
+                                backgroundColor = Color(0xFF3B82F6),
+                                onClick = { navController.navigate(Screen.Customer.route) }
+                            )
+
+                            QuickActionButton(
+                                modifier = Modifier.weight(1f),
+                                icon = "🏷️",
+                                title = "Produk",
+                                subtitle = "Atur harga",
+                                backgroundColor = Color(0xFFF59E0B),
+                                onClick = { navController.navigate(Screen.Product.route) }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp)) // Bottom spacing for scroll content
+            }
+        }
+
+        // Dialog components - properly positioned within main Box scope
+        if (showChangePasswordDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    if (dashboardResult !is AuthResult.Loading) {
+                        showChangePasswordDialog = false
+                        nama = ""
+                        oldPassword = ""
+                        newPassword = ""
+                        viewModel.resetDashboardState()
+                    }
+                },
+                title = { Text("🔧 Update Account") },
+                text = {
+                    Column {
+                        OutlinedTextField(
+                            value = nama,
+                            onValueChange = { nama = it },
+                            label = { Text("Nama User") },
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = oldPassword,
+                            onValueChange = { oldPassword = it },
+                            label = { Text("Password Lama") },
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            singleLine = true
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = newPassword,
+                            onValueChange = { newPassword = it },
+                            label = { Text("Password Baru") },
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            singleLine = true
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            if (dashboardResult !is AuthResult.Loading) {
+                                val request = UpdateUserRequest(
+                                    nama = if (nama.isNotBlank()) nama else null,
+                                    oldPassword = if (oldPassword.isNotBlank()) oldPassword else null,
+                                    newPassword = if (newPassword.isNotBlank()) newPassword else null
+                                )
+                                viewModel.updateUserProfile(request)
                             }
                         },
-                        fontSize = 20.sp,
-                        color = Color.LightGray,
-                        fontWeight = FontWeight.Normal
-                    )
-
-                    // Show loading indicator when loading
-                    if (dashboardResult is AuthResult.Loading) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = Color.LightGray,
-                            strokeWidth = 2.dp
-                        )
-                    }
-                }
-
-                Box {
-                    IconButton(onClick = { expanded = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
-                    }
-
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
+                        enabled = dashboardResult !is AuthResult.Loading
                     ) {
-                        DropdownMenuItem(
-                            text = { Text("🔧 Update Account") },
-                            onClick = {
-                                expanded = false
-                                showChangePasswordDialog = true
-                                // Pre-fill current user name
-                                nama = datauser?.nama ?: ""
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("👋 Logout") },
-                            onClick = {
-                                expanded = false
-                                showLogoutDialog = true
-                            }
-                        )
-                    }
-                }
-            }
-
-            if (showChangePasswordDialog) {
-                AlertDialog(
-                    onDismissRequest = {
-                        if (dashboardResult !is AuthResult.Loading) {
-                            showChangePasswordDialog = false
-                            nama = ""
-                            oldPassword = ""
-                            newPassword = ""
-                            viewModel.resetDashboardState()
-                        }
-                    },
-                    title = { Text("🔧 Update Account") },
-                    text = {
-                        Column {
-                            OutlinedTextField(
-                                value = nama,
-                                onValueChange = { nama = it },
-                                label = { Text("Nama User") },
-                                singleLine = true
-                            )
-                            OutlinedTextField(
-                                value = oldPassword,
-                                onValueChange = { oldPassword = it },
-                                label = { Text("Password Lama") },
-                                visualTransformation = PasswordVisualTransformation(),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                                singleLine = true
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            OutlinedTextField(
-                                value = newPassword,
-                                onValueChange = { newPassword = it },
-                                label = { Text("Password Baru") },
-                                visualTransformation = PasswordVisualTransformation(),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                                singleLine = true
-                            )
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                if (dashboardResult !is AuthResult.Loading) {
-                                    val request = UpdateUserRequest(
-                                        nama = if (nama.isNotBlank()) nama else null,
-                                        oldPassword = if (oldPassword.isNotBlank()) oldPassword else null,
-                                        newPassword = if (newPassword.isNotBlank()) newPassword else null
-                                    )
-                                    viewModel.updateUserProfile(request)
-                                }
-                            },
-                            enabled = dashboardResult !is AuthResult.Loading
-                        ) {
-                            if (dashboardResult is AuthResult.Loading) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Updating...")
-                                }
-                            } else {
-                                Text("💾 Submit")
-                            }
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(
-                            onClick = {
-                                if (dashboardResult !is AuthResult.Loading) {
-                                    showChangePasswordDialog = false
-                                    nama = ""
-                                    oldPassword = ""
-                                    newPassword = ""
-                                    viewModel.resetDashboardState()
-                                }
-                            },
-                            enabled = dashboardResult !is AuthResult.Loading
-                        ) {
-                            Text("❌ Cancel")
-                        }
-                    }
-                )
-            }
-
-            if (showLogoutDialog) {
-                AlertDialog(
-                    onDismissRequest = {
-                        if (dashboardResult !is AuthResult.Loading) {
-                            showLogoutDialog = false
-                        }
-                    },
-                    title = { Text(text = "👋 Logout") },
-                    text = {
-                        when (val result = dashboardResult) {
-                            is AuthResult.Loading -> {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(result.message)
-                                }
-                            }
-                            else -> {
-                                Text("🤔 Apakah Anda yakin ingin keluar?")
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                if (dashboardResult !is AuthResult.Loading) {
-                                    viewModel.logout()
-                                    showLogoutDialog = false
-                                }
-                            },
-                            enabled = dashboardResult !is AuthResult.Loading
-                        ) {
-                            Text("✅ Ya, Keluar")
-                        }
-                    },
-                    dismissButton = {
-                        if (dashboardResult !is AuthResult.Loading) {
-                            TextButton(onClick = { showLogoutDialog = false }) {
-                                Text("❌ Batal")
-                            }
-                        }
-                    }
-                )
-            }
-
-            // Summary Section
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF242424) // Darker card background
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Summary",
-                            fontSize = 24.sp,
-                            color = Color.White
-                        )
-
-                        // Date Filter Button
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    color = Color(0xFF333333),
-                                    shape = RoundedCornerShape(24.dp)
-                                )
-                                .clickable { showDateFilter = true }
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
+                        if (dashboardResult is AuthResult.Loading) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = selectedDateRange,
-                                    color = Color.White,
-                                    fontSize = 16.sp
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp
                                 )
-                                Spacer(modifier = Modifier.size(4.dp))
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "Show date filter",
-                                    tint = Color.White
-                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Updating...")
                             }
+                        } else {
+                            Text("💾 Submit")
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Graph area (placeholder for actual chart)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp)
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            if (dashboardResult !is AuthResult.Loading) {
+                                showChangePasswordDialog = false
+                                nama = ""
+                                oldPassword = ""
+                                newPassword = ""
+                                viewModel.resetDashboardState()
+                            }
+                        },
+                        enabled = dashboardResult !is AuthResult.Loading
                     ) {
-                        // Horizontal lines
-                        for (i in 0..5) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(1.dp)
-                                    .background(Color(0xFF444444))
-                                    .align(
-                                        when (i) {
-                                            0 -> Alignment.BottomCenter
-                                            5 -> Alignment.TopCenter
-                                            else -> Alignment.Center
-                                        }
-                                    )
-                            )
-
-                            // Y-axis labels
-                            Text(
-                                text = "${5-i}",
-                                color = Color.Gray,
-                                fontSize = 14.sp,
-                                modifier = Modifier
-                                    .align(
-                                        when (i) {
-                                            0 -> Alignment.BottomStart
-                                            5 -> Alignment.TopStart
-                                            else -> Alignment.CenterStart
-                                        }
-                                    )
-                                    .padding(bottom = if (i == 0) 0.dp else 8.dp)
-                            )
-                        }
-
-                        // X-axis labels
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .align(Alignment.BottomCenter)
-                                .padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Jan", color = Color.Gray, fontSize = 14.sp)
-                            Text("Feb", color = Color.Gray, fontSize = 14.sp)
-                            Text("Mar", color = Color.Gray, fontSize = 14.sp)
-                            Text("Apr", color = Color.Gray, fontSize = 14.sp)
-                            Text("May", color = Color.Gray, fontSize = 14.sp)
-                        }
+                        Text("❌ Cancel")
                     }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Stats cards
-                    StatItem(
-                        icon = "clipboard",
-                        title = "Total queues",
-                        count = "0",
-                        backgroundColor = Color(0xFF1E3954)
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    StatItem(
-                        icon = "warning",
-                        title = "Uncompleted queues",
-                        count = "0",
-                        backgroundColor = Color(0xFF1E3954)
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    StatItem(
-                        icon = "person",
-                        title = "Active customers",
-                        count = "0",
-                        backgroundColor = Color(0xFF1E3954)
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    StatItem(
-                        icon = "tag",
-                        title = "Products sold",
-                        count = "0",
-                        backgroundColor = Color(0xFF1E3954)
-                    )
                 }
-            }
+            )
+        }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Revenue Section
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF242424)
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Revenue",
-                            fontSize = 24.sp,
-                            color = Color.White
-                        )
-
-                        // Date Filter Button
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    color = Color(0xFF333333),
-                                    shape = RoundedCornerShape(24.dp)
-                                )
-                                .clickable { showDateFilter = true }
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
+        if (showLogoutDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    if (dashboardResult !is AuthResult.Loading) {
+                        showLogoutDialog = false
+                    }
+                },
+                title = { Text(text = "👋 Logout") },
+                text = {
+                    when (val result = dashboardResult) {
+                        is AuthResult.Loading -> {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = selectedDateRange,
-                                    color = Color.White,
-                                    fontSize = 16.sp
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
                                 )
-                                Spacer(modifier = Modifier.size(4.dp))
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "Show date filter",
-                                    tint = Color.White
-                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(result.message)
                             }
                         }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Revenue chart
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp)
-                    ) {
-                        // Horizontal lines
-                        for (i in 0..5) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(1.dp)
-                                    .background(Color(0xFF444444))
-                                    .align(
-                                        when (i) {
-                                            0 -> Alignment.BottomCenter
-                                            5 -> Alignment.TopCenter
-                                            else -> Alignment.Center
-                                        }
-                                    )
-                            )
-
-                            // Y-axis labels
-                            Text(
-                                text = "$$i",
-                                color = Color.Gray,
-                                fontSize = 14.sp,
-                                modifier = Modifier
-                                    .align(
-                                        when (i) {
-                                            0 -> Alignment.BottomStart
-                                            5 -> Alignment.TopStart
-                                            else -> Alignment.CenterStart
-                                        }
-                                    )
-                                    .padding(bottom = if (i == 0) 0.dp else 8.dp)
-                            )
+                        else -> {
+                            Text("🤔 Apakah Anda yakin ingin keluar?")
                         }
-
-                        // X-axis labels
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .align(Alignment.BottomCenter)
-                                .padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Jan", color = Color.Gray, fontSize = 14.sp)
-                            Text("Feb", color = Color.Gray, fontSize = 14.sp)
-                            Text("Mar", color = Color.Gray, fontSize = 14.sp)
-                            Text("Apr", color = Color.Gray, fontSize = 14.sp)
-                            Text("May", color = Color.Gray, fontSize = 14.sp)
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            if (dashboardResult !is AuthResult.Loading) {
+                                viewModel.logout()
+                                showLogoutDialog = false
+                            }
+                        },
+                        enabled = dashboardResult !is AuthResult.Loading
+                    ) {
+                        Text("✅ Ya, Keluar")
+                    }
+                },
+                dismissButton = {
+                    if (dashboardResult !is AuthResult.Loading) {
+                        TextButton(onClick = { showLogoutDialog = false }) {
+                            Text("❌ Batal")
                         }
                     }
                 }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp)) // Reduced bottom spacing since navbar is removed
+            )
         }
 
         // Date Filter Bottom Sheet
@@ -610,13 +684,9 @@ fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController)
                 viewModel.clearDashboardError()
             }
         }
-    }
 
-    // Snackbar positioned at bottom
-    if (showSnackbar) {
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
+        // Snackbar positioned at bottom - properly within main Box scope
+        if (showSnackbar) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -655,59 +725,107 @@ fun DashboardScreen(viewModel: DashboardViewModel, navController: NavController)
                 }
             }
         }
+
+        // Refresh functionality available through refresh button in top bar
     }
 }
 
 @Composable
-fun StatItem(icon: String, title: String, count: String, backgroundColor: Color) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(color = backgroundColor, shape = RoundedCornerShape(8.dp))
-            .padding(16.dp)
+fun QuickActionButton(
+    modifier: Modifier = Modifier,
+    icon: String,
+    title: String,
+    subtitle: String,
+    backgroundColor: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .clickable { onClick() },
+        color = backgroundColor.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(backgroundColor, RoundedCornerShape(24.dp)),
+                contentAlignment = Alignment.Center
             ) {
-                // We would typically use a real icon resource
-                // For now using a placeholder Box as icon
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .background(Color.White, RoundedCornerShape(4.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = when (icon) {
-                            "clipboard" -> "📋"
-                            "warning" -> "⚠️"
-                            "person" -> "👤"
-                            "tag" -> "🏷️"
-                            else -> "📄"
-                        },
-                        fontSize = 12.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.size(16.dp))
-
                 Text(
-                    text = title,
-                    color = Color.White,
-                    fontSize = 16.sp
+                    text = icon,
+                    fontSize = 20.sp
                 )
             }
 
+            Spacer(modifier = Modifier.height(12.dp))
+
             Text(
-                text = count,
+                text = title,
                 color = Color.White,
-                fontSize = 20.sp,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = subtitle,
+                color = Color(0xFF9CA3AF),
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+fun MetricCard(
+    modifier: Modifier = Modifier,
+    icon: String,
+    title: String,
+    value: String,
+    color: Color
+) {
+    Surface(
+        modifier = modifier,
+        color = color.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = icon,
+                fontSize = 28.sp
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = value,
+                color = Color.White,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = title,
+                color = Color(0xFF9CA3AF),
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Medium
             )
         }
     }
@@ -741,7 +859,7 @@ fun DateFilterBottomSheet(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Select date",
+                text = "Pilih Periode",
                 fontSize = 22.sp,
                 color = Color.White,
                 modifier = Modifier
@@ -753,45 +871,45 @@ fun DateFilterBottomSheet(
             Spacer(modifier = Modifier.height(16.dp))
 
             DateRangeOption(
-                title = "All time",
-                isSelected = currentSelection == "All time",
-                onClick = { onDateRangeSelected("All time") }
+                title = "Semua Waktu",
+                isSelected = currentSelection == "Semua Waktu",
+                onClick = { onDateRangeSelected("Semua Waktu") }
             )
 
             DateRangeOption(
-                title = "Today",
-                isSelected = currentSelection == "Today",
-                onClick = { onDateRangeSelected("Today") }
+                title = "Hari Ini",
+                isSelected = currentSelection == "Hari Ini",
+                onClick = { onDateRangeSelected("Hari Ini") }
             )
 
             DateRangeOption(
-                title = "Yesterday",
-                isSelected = currentSelection == "Yesterday",
-                onClick = { onDateRangeSelected("Yesterday") }
+                title = "Kemarin",
+                isSelected = currentSelection == "Kemarin",
+                onClick = { onDateRangeSelected("Kemarin") }
             )
 
             DateRangeOption(
-                title = "This week",
-                isSelected = currentSelection == "This week",
-                onClick = { onDateRangeSelected("This week") }
+                title = "Minggu Ini",
+                isSelected = currentSelection == "Minggu Ini",
+                onClick = { onDateRangeSelected("Minggu Ini") }
             )
 
             DateRangeOption(
-                title = "This month",
-                isSelected = currentSelection == "This month",
-                onClick = { onDateRangeSelected("This month") }
+                title = "Bulan Ini",
+                isSelected = currentSelection == "Bulan Ini",
+                onClick = { onDateRangeSelected("Bulan Ini") }
             )
 
             DateRangeOption(
-                title = "This year",
-                isSelected = currentSelection == "This year",
-                onClick = { onDateRangeSelected("This year") }
+                title = "Tahun Ini",
+                isSelected = currentSelection == "Tahun Ini",
+                onClick = { onDateRangeSelected("Tahun Ini") }
             )
 
             DateRangeOption(
-                title = "Custom range",
-                isSelected = currentSelection == "Custom range",
-                onClick = { onDateRangeSelected("Custom range") },
+                title = "Rentang Kustom",
+                isSelected = currentSelection == "Rentang Kustom",
+                onClick = { onDateRangeSelected("Rentang Kustom") },
                 textColor = Color(0xFF4A90E2)
             )
 

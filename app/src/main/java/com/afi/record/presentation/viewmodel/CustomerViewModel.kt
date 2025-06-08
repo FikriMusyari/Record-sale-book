@@ -6,6 +6,7 @@ import com.afi.record.domain.models.CreateCustomersRequest
 import com.afi.record.domain.models.UpdateCustomersRequest
 import com.afi.record.domain.repository.CustomerRepo
 import com.afi.record.domain.useCase.CustomerResult
+import com.afi.record.presentation.viewmodel.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,12 +49,18 @@ class CustomerViewModel @Inject constructor(
 
     fun searchCustomers(query: String) {
         _searchQuery.value = query
+        if (userId == null) {
+            _customers.value = CustomerResult.Error("Pengguna tidak diautentikasi. Tidak dapat mencari pelanggan.")
+            return
+        }
         viewModelScope.launch {
             _customers.value = CustomerResult.Loading
             try {
                 val response = repo.searchcustomers(query)
                 val customers = response.data ?: emptyList()
-                _customers.value = CustomerResult.Success(customers)
+                // Filter berdasarkan userId seperti di getAllCustomers
+                val filteredCustomers = customers.filter { it.userId.toInt() == userId }
+                _customers.value = CustomerResult.Success(filteredCustomers)
             } catch (e: Exception) {
                 _customers.value = CustomerResult.Error("Pencarian gagal: ${e.message}")
             }
