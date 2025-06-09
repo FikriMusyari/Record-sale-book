@@ -42,10 +42,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavBackStackEntry
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.activity.ComponentActivity
 import com.afi.record.domain.models.Customers
 import com.afi.record.domain.useCase.CustomerResult
 import com.afi.record.presentation.viewmodel.CustomerViewModel
-import com.afi.record.presentation.viewmodel.QueueViewModel
+import com.afi.record.presentation.viewmodel.QueueStateManager
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -55,8 +59,10 @@ fun SelectCustomerScreen(
     navController: NavController,
     viewModel: CustomerViewModel = hiltViewModel()
 ) {
-    // Get shared QueueViewModel - using a simpler approach
-    val queueViewModel: QueueViewModel = hiltViewModel()
+    // Get Activity context for shared ViewModel
+    val context = LocalContext.current
+    val activity = context as ComponentActivity
+    val queueStateManager: QueueStateManager = hiltViewModel(activity)
 
     // Collect state with proper handling
     val customersState by viewModel.customers.collectAsStateWithLifecycle()
@@ -237,7 +243,7 @@ fun SelectCustomerScreen(
                                     SelectableCustomerItem(
                                         customer = customer,
                                         onCustomerSelected = { selectedCustomer ->
-                                            queueViewModel.selectCustomer(selectedCustomer)
+                                            queueStateManager.selectCustomer(selectedCustomer)
                                             navController.navigateUp()
                                         }
                                     )

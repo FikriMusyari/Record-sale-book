@@ -1,5 +1,6 @@
 package com.afi.record.presentation.screen.queue
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -54,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -62,11 +64,11 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.afi.record.presentation.viewmodel.QueueStateManager
 import com.afi.record.domain.models.CreateQueueRequest
 import com.afi.record.domain.models.Customers
 import com.afi.record.domain.models.OrderItem
 import com.afi.record.domain.models.Products
-import com.afi.record.domain.models.QueueResponse
 import com.afi.record.domain.models.QueueStatus
 import com.afi.record.domain.models.SelectedProduct
 import com.afi.record.domain.useCase.AuthResult
@@ -100,13 +102,17 @@ val paymentMethods = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddQueueScreen(
-    navController: NavController,
-    viewModel: QueueViewModel = hiltViewModel()
+    navController: NavController
 ) {
+    val viewModel: QueueViewModel = hiltViewModel()
+    // Get Activity context for shared ViewModel
+    val context = LocalContext.current
+    val activity = context as ComponentActivity
+    val queueStateManager: QueueStateManager = hiltViewModel(activity)
 
-    val selectedCustomer by viewModel.selectedCustomer.collectAsStateWithLifecycle()
+    val selectedCustomer by queueStateManager.selectedCustomer.collectAsStateWithLifecycle()
     val selectedProducts by viewModel.selectedProducts.collectAsStateWithLifecycle()
-    val tempSelectedProduct by viewModel.tempSelectedProduct.collectAsStateWithLifecycle()
+    val tempSelectedProduct by queueStateManager.tempSelectedProduct.collectAsStateWithLifecycle()
     var selectedStatus by remember { mutableStateOf(statusOptions[0]) }
     var selectedPaymentMethod by remember { mutableStateOf<PaymentMethod?>(null) }
     var note by remember { mutableStateOf("") }
@@ -135,12 +141,7 @@ fun AddQueueScreen(
                 snackbarMessage = result.message
                 snackbarIsError = false
                 showSnackbar = true
-
-
-                if (result.data is QueueResponse) {
-                    viewModel.clearAllSelections()
-                    navController.navigateUp()
-                }
+                // Navigation is now handled in onConfirm, not here
             }
             is AuthResult.Error -> {
                 snackbarMessage = result.message
@@ -160,7 +161,7 @@ fun AddQueueScreen(
         tempSelectedProduct?.let { product ->
             dialogSelectedProduct = product
             showProductOrderDialog = true
-            viewModel.clearTempSelectedProduct()
+            queueStateManager.clearTempSelectedProduct()
         }
     }
 
@@ -170,6 +171,7 @@ fun AddQueueScreen(
                 title = { Text("Create queue") },
                 navigationIcon = {
                     IconButton(onClick = {
+                        queueStateManager.clearAllSelections()
                         viewModel.clearAllSelections()
                         navController.navigateUp()
                     }) {
@@ -333,7 +335,16 @@ fun AddQueueScreen(
 
                     viewModel.createQueue(request)
                 }
+
+                // Clear selections and navigate immediately
+                queueStateManager.clearAllSelections()
+                viewModel.clearAllSelections()
                 showConfirmationDialog = false
+
+                // Navigate to QueueScreen immediately
+                navController.navigate(Screen.Queue.route) {
+                    popUpTo(Screen.Queue.route) { inclusive = true }
+                }
             },
             onDismiss = { showConfirmationDialog = false }
         )
@@ -1117,7 +1128,6 @@ fun ConfirmationDialog(
                             )
                     )
                 }
-                Text("🆔 Status ID: ${selectedStatus.id}")
                 Text("🛍️ Produk: ${selectedProducts.size} item(s)")
                 Text("💰 Total: ${formatter.format(grandTotal.toDouble())}")
 

@@ -1,9 +1,11 @@
 package com.afi.record.presentation.screen.queue
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,12 +16,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.FilterAlt
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -33,38 +34,35 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import com.afi.record.presentation.Screen
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.afi.record.presentation.viewmodel.QueueViewModel
-import com.afi.record.domain.useCase.AuthResult
+import androidx.navigation.NavController
 import com.afi.record.domain.models.DataItem
 import com.afi.record.domain.models.UpdateQueueRequest
-import androidx.compose.ui.window.Dialog
+import com.afi.record.domain.useCase.AuthResult
+import com.afi.record.presentation.Screen
+import com.afi.record.presentation.viewmodel.QueueViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,9 +71,6 @@ fun QueueScreen(
     viewModel: QueueViewModel = hiltViewModel()
 ) {
     var showFilters by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
-    var isSearchActive by remember { mutableStateOf(false) }
-    val focusRequester = remember { FocusRequester() }
     val sheetState = rememberModalBottomSheetState()
 
     // Collect state from ViewModel
@@ -94,68 +89,39 @@ fun QueueScreen(
         viewModel.getAllQueues()
     }
 
-    LaunchedEffect(isSearchActive) {
-        if (isSearchActive) {
-            focusRequester.requestFocus()
-        }
-    }
+
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    if (isSearchActive) {
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            OutlinedTextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .focusRequester(focusRequester),
-                                placeholder = { Text("Search...") },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Search, contentDescription = "Search")
-                                },
-                                trailingIcon = {
-                                    if (searchQuery.isNotEmpty()) {
-                                        IconButton(onClick = { searchQuery = "" }) {
-                                            Icon(Icons.Default.Close, contentDescription = "Clear")
-                                        }
-                                    }
-                                },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                keyboardActions = KeyboardActions(
-                                    onSearch = {
-                                        // Handle search logic here
-                                    }
-                                )
-                            )
-                        }
-                    } else {
-                        Text("Queue", fontWeight = FontWeight.Bold)
-                    }
+                    Text(
+                        text = "📋 Queue Management",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge
+                    )
                 },
                 actions = {
-                    if (!isSearchActive) {
-                        Row {
-                            IconButton(onClick = { isSearchActive = true }) {
-                                Icon(Icons.Default.Search, contentDescription = "Search")
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            IconButton(onClick = { showFilters = true }) {
-                                Text("Filter", style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
-                    } else {
-                        IconButton(onClick = {
-                            isSearchActive = false
-                            searchQuery = ""
-                        }) {
-                            Text("Cancel", style = MaterialTheme.typography.bodyMedium)
-                        }
+                    IconButton(
+                        onClick = { showFilters = true },
+                        modifier = Modifier
+                            .background(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .padding(4.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.FilterList,
+                            contentDescription = "Filter",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
         },
         floatingActionButton = {
@@ -227,16 +193,11 @@ fun QueueScreen(
                             }
                         }
                     } else {
-                        // Filter queues based on search and filter
+                        // Filter queues based on selected filter
                         val filteredQueues = queues.filter { queue ->
-                            val matchesSearch = if (searchQuery.isBlank()) true else {
-                                queue.customer?.contains(searchQuery, ignoreCase = true) == true ||
-                                queue.note?.contains(searchQuery, ignoreCase = true) == true
-                            }
-                            val matchesFilter = if (selectedFilter == null) true else {
+                            if (selectedFilter == null) true else {
                                 queue.status == selectedFilter
                             }
-                            matchesSearch && matchesFilter
                         }
 
                         LazyColumn(
@@ -277,37 +238,56 @@ fun QueueScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(24.dp)
             ) {
-                Text("Filter Options", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 20.dp)
+                ) {
+                    Icon(
+                        Icons.Default.FilterList,
+                        contentDescription = "Filter",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        "Filter by Status",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // All option
+                FilterOptionItem(
+                    text = "All Queues",
+                    isSelected = selectedFilter == null,
+                    statusColor = MaterialTheme.colorScheme.primary,
+                    onClick = {
+                        selectedFilter = null
+                        showFilters = false
+                    }
+                )
 
                 filterOptions.forEach { option ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                selectedFilter = if (selectedFilter == option) null else option
-                                showFilters = false
-                            }
-                            .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = selectedFilter == option,
-                            onClick = {
-                                selectedFilter = if (selectedFilter == option) null else option
-                                showFilters = false
-                            }
-                        )
-                        Text(
-                            text = option,
-                            modifier = Modifier.padding(start = 12.dp),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
+                    FilterOptionItem(
+                        text = option,
+                        isSelected = selectedFilter == option,
+                        statusColor = when (option) {
+                            "In queue" -> Color(0xFFFFC107)
+                            "In process" -> Color(0xFF2196F3)
+                            "Unpaid" -> Color(0xFFFF5722)
+                            "Completed" -> Color(0xFF4CAF50)
+                            else -> Color.Gray
+                        },
+                        onClick = {
+                            selectedFilter = if (selectedFilter == option) null else option
+                            showFilters = false
+                        }
+                    )
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+
+                Spacer(modifier = Modifier.height(20.dp))
             }
         }
     }
@@ -320,8 +300,12 @@ fun QueueScreen(
                 showEditDialog = false
                 selectedQueueForEdit = null
             },
-            onUpdateStatus = { queueId, newStatusId ->
-                viewModel.updateQueue(queueId, UpdateQueueRequest(statusId = newStatusId))
+            onUpdateQueue = { queueId, newStatusId, paymentId ->
+                val updateRequest = UpdateQueueRequest(
+                    statusId = newStatusId,
+                    paymentId = paymentId
+                )
+                viewModel.updateQueue(queueId, updateRequest)
                 showEditDialog = false
                 selectedQueueForEdit = null
             }
@@ -336,8 +320,14 @@ fun QueueItem(
     onDeleteClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
             modifier = Modifier
@@ -453,25 +443,88 @@ fun FilterChip(
 ) {
     Surface(
         modifier = modifier
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(16.dp)),
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(20.dp)),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+        shadowElevation = 2.dp
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(start = 12.dp, end = 4.dp)
+            modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
         ) {
-            Text(text, style = MaterialTheme.typography.bodySmall)
+            Icon(
+                Icons.Default.FilterAlt,
+                contentDescription = "Filter",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary
+            )
             IconButton(
                 onClick = onClose,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(32.dp)
             ) {
                 Icon(
                     Icons.Default.Close,
                     contentDescription = "Close",
-                    modifier = Modifier.size(12.dp)
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun FilterOptionItem(
+    text: String,
+    isSelected: Boolean,
+    statusColor: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 4.dp),
+        color = if (isSelected) statusColor.copy(alpha = 0.1f) else Color.Transparent,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(
+                selected = isSelected,
+                onClick = onClick,
+                colors = androidx.compose.material3.RadioButtonDefaults.colors(
+                    selectedColor = statusColor
+                )
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+
+            if (text != "All Queues") {
+                Surface(
+                    color = statusColor,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.size(12.dp)
+                ) {}
+                Spacer(modifier = Modifier.width(12.dp))
+            }
+
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                color = if (isSelected) statusColor else MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }
@@ -480,7 +533,7 @@ fun FilterChip(
 fun EditQueueDialog(
     queue: DataItem,
     onDismiss: () -> Unit,
-    onUpdateStatus: (Int, Int) -> Unit
+    onUpdateQueue: (Int, Int, Int?) -> Unit
 ) {
     val statusOptions = listOf(
         1 to "In queue",
@@ -489,11 +542,18 @@ fun EditQueueDialog(
         4 to "Completed"
     )
 
+    val paymentMethods = listOf(
+        1 to "Cash",
+        2 to "Account Balance"
+    )
+
     var selectedStatusId by remember {
-        mutableStateOf(
+        mutableIntStateOf(
             statusOptions.find { it.second == queue.status }?.first ?: 1
         )
     }
+
+    var selectedPaymentId by remember { mutableStateOf<Int?>(null) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -533,19 +593,59 @@ fun EditQueueDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { selectedStatusId = id }
+                            .clickable {
+                                selectedStatusId = id
+                                // Reset payment method when status changes
+                                if (id != 4) selectedPaymentId = null
+                            }
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
                             selected = selectedStatusId == id,
-                            onClick = { selectedStatusId = id }
+                            onClick = {
+                                selectedStatusId = id
+                                // Reset payment method when status changes
+                                if (id != 4) selectedPaymentId = null
+                            }
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = name,
                             style = MaterialTheme.typography.bodyMedium
                         )
+                    }
+                }
+
+                // Show payment method selection if status is "Completed"
+                if (selectedStatusId == 4) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Select Payment Method:",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+
+                    paymentMethods.forEach { (id, name) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedPaymentId = id }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selectedPaymentId == id,
+                                onClick = { selectedPaymentId = id }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = name,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
 
@@ -562,9 +662,15 @@ fun EditQueueDialog(
                     Button(
                         onClick = {
                             queue.id?.let { queueId ->
-                                onUpdateStatus(queueId, selectedStatusId)
+                                // Validate payment method selection for completed status
+                                if (selectedStatusId == 4 && selectedPaymentId == null) {
+                                    // Could show error message here
+                                    return@let
+                                }
+                                onUpdateQueue(queueId, selectedStatusId, selectedPaymentId)
                             }
-                        }
+                        },
+                        enabled = if (selectedStatusId == 4) selectedPaymentId != null else true
                     ) {
                         Text("Update")
                     }

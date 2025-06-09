@@ -20,8 +20,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class QueueViewModel @Inject constructor(
-    private val repo: QueueRepo,
-    private val customerRepo: com.afi.record.domain.repository.CustomerRepo
+    private val repo: QueueRepo
 ) : ViewModel() {
 
     private val _queue = MutableStateFlow<AuthResult>(AuthResult.Idle)
@@ -105,10 +104,6 @@ class QueueViewModel @Inject constructor(
         _selectedProducts.value = _selectedProducts.value.filter { it.product.id != productId }
     }
 
-    fun clearSelectedProducts() {
-        _selectedProducts.value = emptyList()
-    }
-
     fun clearAllSelections() {
         _selectedCustomer.value = null
         _selectedProducts.value = emptyList()
@@ -166,18 +161,7 @@ class QueueViewModel @Inject constructor(
             _queue.value = AuthResult.Loading(randomMessage)
 
             try {
-                // Get current queue data before update to check for status change
-                val currentQueues = _queues.value
-                val currentQueue = currentQueues.find { it.id == queueId }
-
                 repo.updateQueue(queueId, request)
-
-                // Check if status is being changed to "Completed" (statusId = 4)
-                if (request.statusId == 4 && currentQueue != null && currentQueue.status != "Completed") {
-                    // Handle customer balance deduction for completed queue
-                    handleQueueCompletion(currentQueue)
-                }
-
                 _queue.value = AuthResult.Success(
                     data = "update_success",
                     message = "🎉 Antrian berhasil diperbarui!"
@@ -190,41 +174,7 @@ class QueueViewModel @Inject constructor(
         }
     }
 
-    private suspend fun handleQueueCompletion(queue: DataItem) {
-        try {
-            // Calculate total amount from queue
-            val totalAmount = queue.grandTotal ?: 0
 
-            if (totalAmount > 0) {
-                // Find customer by name (since we don't have direct customer ID in DataItem)
-                val customerName = queue.customer
-                if (!customerName.isNullOrBlank()) {
-                    // Get customer data to find the customer ID and current balance
-                    val customersResponse = customerRepo.getAllCustomers()
-                    val customer = customersResponse.data.find { it.nama == customerName }
-
-                    if (customer != null) {
-                        // Calculate new balance (deduct the total amount)
-                        val newBalance = customer.balance - BigDecimal(totalAmount)
-
-                        // Update customer balance
-                        val updateRequest = com.afi.record.domain.models.UpdateCustomersRequest(
-                            nama = null, // Don't change name
-                            balance = newBalance
-                        )
-
-                        customerRepo.updateCustomer(customer.id, updateRequest)
-
-                        // Log the balance deduction for debugging
-                        println("🔄 Balance deducted for customer ${customer.nama}: ${customer.balance} -> $newBalance (Amount: $totalAmount)")
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            // Log error but don't fail the queue update
-            println("❌ Error updating customer balance: ${e.message}")
-        }
-    }
 
     fun deleteQueue(queueId: Number) {
         viewModelScope.launch {
@@ -249,9 +199,5 @@ class QueueViewModel @Inject constructor(
         if (_queue.value is AuthResult.Error) {
             _queue.value = AuthResult.Idle
         }
-    }
-
-    fun resetQueueState() {
-        _queue.value = AuthResult.Idle
     }
 }

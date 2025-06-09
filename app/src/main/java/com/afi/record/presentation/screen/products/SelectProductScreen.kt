@@ -42,10 +42,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.ComponentActivity
 import com.afi.record.domain.models.Products
 import com.afi.record.domain.useCase.ProductResult
 import com.afi.record.presentation.viewmodel.ProductViewModel
-import com.afi.record.presentation.viewmodel.QueueViewModel
+import com.afi.record.presentation.viewmodel.QueueStateManager
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -55,8 +57,10 @@ fun SelectProductScreen(
     navController: NavController,
     viewModel: ProductViewModel = hiltViewModel()
 ) {
-    // Get shared QueueViewModel - using a simpler approach
-    val queueViewModel: QueueViewModel = hiltViewModel()
+    // Get Activity context for shared ViewModel
+    val context = LocalContext.current
+    val activity = context as ComponentActivity
+    val queueStateManager: QueueStateManager = hiltViewModel(activity)
 
     // Collect state with proper handling
     val productsState by viewModel.productsState.collectAsStateWithLifecycle()
@@ -230,7 +234,7 @@ fun SelectProductScreen(
                                     SelectableProductItem(
                                         product = product,
                                         onProductSelected = { selectedProduct ->
-                                            queueViewModel.setTempSelectedProduct(selectedProduct)
+                                            queueStateManager.setTempSelectedProduct(selectedProduct)
                                             navController.navigateUp()
                                         }
                                     )
