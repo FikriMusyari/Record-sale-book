@@ -86,5 +86,4 @@ app/
 - Fikri Musyari Taufiq (12350110187)
 - Ari Gumilang (12350110349)
 - Irfan Nurfathoni Putra (12350110028)
-- Muhammad Hammam Zuhdi (12250111977)
 
