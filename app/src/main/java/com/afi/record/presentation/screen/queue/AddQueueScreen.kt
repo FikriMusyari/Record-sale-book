@@ -64,7 +64,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.afi.record.presentation.viewmodel.QueueStateManager
 import com.afi.record.domain.models.CreateQueueRequest
 import com.afi.record.domain.models.Customers
 import com.afi.record.domain.models.OrderItem
@@ -73,6 +72,7 @@ import com.afi.record.domain.models.QueueStatus
 import com.afi.record.domain.models.SelectedProduct
 import com.afi.record.domain.useCase.AuthResult
 import com.afi.record.presentation.Screen
+import com.afi.record.presentation.viewmodel.QueueStateManager
 import com.afi.record.presentation.viewmodel.QueueViewModel
 import java.math.BigDecimal
 import java.text.NumberFormat

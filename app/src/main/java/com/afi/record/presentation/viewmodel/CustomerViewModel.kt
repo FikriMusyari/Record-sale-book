@@ -6,7 +6,6 @@ import com.afi.record.domain.models.CreateCustomersRequest
 import com.afi.record.domain.models.UpdateCustomersRequest
 import com.afi.record.domain.repository.CustomerRepo
 import com.afi.record.domain.useCase.CustomerResult
-import com.afi.record.presentation.viewmodel.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

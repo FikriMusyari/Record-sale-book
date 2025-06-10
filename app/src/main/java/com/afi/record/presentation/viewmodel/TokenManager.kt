@@ -1,14 +1,14 @@
 package com.afi.record.presentation.viewmodel
 
 import android.content.Context
+import android.util.Base64
+import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
-import android.util.Base64
-import androidx.core.content.edit
 
 @Singleton
 class TokenManager @Inject constructor(@ApplicationContext context: Context) {
